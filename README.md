@@ -11,6 +11,6 @@ install.packages("devtools")
 devtools::install_github("tonycanale/CoMiRe/CoMiRe")
 ```
 
-This packge is an upgrade of the CoMiRe package developed for the paper in Bionetrics. The old version that reproduces the results of the paper is manteined in the github repository [CoMiRe_BiomnetricsPaper](https://github.com/tonycanale/CoMiRe_BiometricsPaper).
+This packge is an upgrade of the CoMiRe package developed for the [paper in Biometrics](https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12917). The old version reproducing the results of the paper compiled under R version 3.4 is manteined in the github repository [CoMiRe_BiomnetricsPaper](https://github.com/tonycanale/CoMiRe_BiometricsPaper).
 
-A  [tutorial](Tutorial.md) illustrating the different models is available. 
+A  [tutorial](Tutorial.md) illustrating the different models and the package usage is also available. 
