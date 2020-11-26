@@ -1,0 +1,15 @@
+Package: CoMiRe
+Type: Package
+Title: Convex Mixture Regression
+Version: 0.6
+Date: 2020-11-24
+Author: Antonio Canale [aut, cre], Daniele Durante [ctb], Arianna Falcioni [aut], Luisa Galtarossa [aut], Tommaso Rigon [ctb]
+Maintainer: Antonio Canale <canale@stat.unipd.it>
+Description: Posterior inference under the convex mixture regression (CoMiRe) models.
+License: GPL-2
+NeedsCompilation: yes
+Imports: Rcpp (>= 1.0.5), methods, KernSmooth, MASS, NonpModelCheck, ggplot2, gtools, mnormt, mvtnorm, pdp, splines2 (>= 0.3.1), truncnorm
+Depends: R (>= 4.0)
+LinkingTo: RcppArmadillo, Rcpp (>= 1.0.5)
+RoxygenNote: 7.1.1
+Encoding: UTF-8
