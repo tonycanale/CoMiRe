@@ -6,7 +6,7 @@
 \usage{
 comire.gibbs(y, x, z = NULL, family = 'continuous', 
        grid = NULL, mcmc, prior, 
-       state = NULL, seed, max.x = max(x), z.val = NULL)
+       state = NULL, seed, max.x = max(x), z.val = NULL, verbose = TRUE)
 }
 \arguments{
 \item{y}{numeric vector for the response:
@@ -57,6 +57,8 @@ If \code{family="binary"} it must include the following values:
 \item{max.x}{maximum value allowed for \code{x}.}
 
 \item{z.val}{optional numeric vector containing a fixed value of interest for each of the confounding covariates to be used for the plots. Default value is \code{mean(z)} for numeric covariates or the mode for factorial covariates.}
+
+\item{verbose}{logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.}
 }
 \value{
 An object of the class \code{classCoMiRe}, i.e. a list of arguments for generating posterior output. It contains:
@@ -115,48 +117,53 @@ J <- H <- 10
 mcmc <- list(nrep=5000, nb=2000, thin=5, ndisplay=4)
 
 
-## 1. continuous case ##
+## 1. binary case ##
+
+premature <- as.numeric(gestage<=37)
+
+prior <- list(pi0=mean(gestage), eta=rep(1, J)/J, 
+             a.pi0=27, b.pi0=360, J=J)
+             
+fit_binary<- comire.gibbs(premature, dde, family="binary", 
+                          mcmc=mcmc, prior=prior, seed=5, max.x=180)
+                          
+                          
+## 2. continuous case ##
 
 prior <- list(mu.theta=mean(gestage), k.theta=10, eta=rep(1, J)/J, 
               alpha=rep(1,H)/H, a=2, b=2, J=J, H=H)
-fit0 <- comire.gibbs(gestage, dde, family="continuous", 
+              
+fit1 <- comire.gibbs(gestage, dde, family="continuous", 
                      mcmc=mcmc, prior=prior, seed=5, max.x=180)
 
 
-## 1.1 only one confounding covariate  ##
+## 2.2 One confunder ##
 
 mage_std <- scale(mage, center = T, scale = T) 
 
 prior <- list(mu.theta=mean(gestage), k.theta=10, mu.gamma=0, k.gamma=10, 
               eta=rep(1, J)/J, alpha=1/H, a=2, b=2, H=H, J=J)
-fit1 <- comire.gibbs(gestage, dde, mage_std, family="continuous", 
+              
+fit2 <- comire.gibbs(gestage, dde, mage_std, family="continuous", 
               mcmc=mcmc, prior=prior, seed=5, max.x=180)
 
 
-## 1.2 more than one confounding covariates  ##
+## 2.3 More confunders ##
 
-z <- cbind(mage, mbmi, mbmi^2, sei)
-z <- scale(z, center = T, scale = T) 
-z <- as.matrix(cbind(z, CPP$smoke))
-mod<- lm(gestage ~ dde + )
+Z <- cbind(mage, mbmi, sei)
+Z <- scale(Z, center = T, scale = T)
+Z <- as.matrix(cbind(Z, CPP$smoke))
+colnames(Z) <- c("age", "BMI", "sei", "smoke")
 
-prior <- list(mu.theta=mod$coefficients[1], k.theta=10, 
-              mu.gamma=mod$coefficients[-c(1,2)], sigma.gamma=diag(rep(10,5)), 
-              eta=rep(1, J)/J, alpha=1/H, a=2, b=2, H=H, J=J)
-fit2 <- comire.gibbs(y, x, z, family="continuous", 
-                     mcmc=mcmc, prior=prior, seed=5)
+mod <- lm(gestage ~ dde + Z)
+prior <- list(mu.theta = mod$coefficients[1], k.theta = 10,
+              mu.gamma = mod$coefficients[-c(1, 2)], sigma.gamma = diag(rep(10, 4)),
+              eta = rep(1, J)/J, alpha = 1/H, a = 2, b = 2, H = H, J = J)
+              
+fit3 <- comire.gibbs(y = gestage, x = dde, z = Z, family = "continuous", mcmc = mcmc, 
+                     prior = prior, seed = 5)
 
-
-## 2. binary case ##
-
-premature <- as.numeric(y<37)
-
-prior <- list(pi0=mean(gestage), eta=rep(1, J)/J, 
-             a.pi0=27, b.pi0=360, J=J)
-fit_binary<- comire.gibbs(premature, dde, family="binary", 
-                          mcmc=mcmc, prior=prior, seed=5, max.x=180)
-
-}
+} 
 }
 
 
