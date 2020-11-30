@@ -2,7 +2,7 @@
 
 This repository contains the R package CoMiRe that implements the **Convex Mixture Regression** models first introduced in
 
-- Canale, A., Durante, D., and Dunson, D. B., (2018), [Convex Mixture Regression for Quantitative Risk Assessment](https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12917), __Biometrics__, doi:10.1111/biom.12917, to appear.
+- Canale, A., Durante, D., and Dunson, D. B., (2018), [Convex Mixture Regression for Quantitative Risk Assessment](https://onlinelibrary.wiley.com/doi/full/10.1111/biom.12917), __Biometrics__, 74, 1331-1340
 
 Install the R package `CoMiRe_VERSION.tar.gz` with `R CMD INSTALL CoMiRe_VERSION.tar.gz` or
 
