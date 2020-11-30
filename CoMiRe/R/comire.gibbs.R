@@ -6,7 +6,7 @@
 #' 
 #' @usage comire.gibbs(y, x, z = NULL, family = 'continuous', 
 #'        grid = NULL, mcmc, prior, 
-#'        state = NULL, seed, max.x = max(x), z.val = NULL)
+#'        state = NULL, seed, max.x = max(x), z.val = NULL, verbose = TRUE)
 #' 
 #' @description Posterior inference via Gibbs sampler for CoMiRe model
 #' 
@@ -85,6 +85,8 @@
 #' @param max.x maximum value allowed for \code{x}.
 #' 
 #' @param z.val optional numeric vector containing a fixed value of interest for each of the confounding covariates to be used for the plots. Default value is \code{mean(z)} for numeric covariates or the mode for factorial covariates.
+#' 
+#' @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
 #'
 #' @return An object of the class \code{classCoMiRe}, i.e. a list of arguments for generating posterior output. It contains:
 #' \itemize{
@@ -117,48 +119,53 @@
 #' mcmc <- list(nrep=5000, nb=2000, thin=5, ndisplay=4)
 #' 
 #' 
-#' ## 1. continuous case ##
+#' ## 1. binary case ##
+#' 
+#' premature <- as.numeric(gestage<=37)
+#' 
+#' prior <- list(pi0=mean(gestage), eta=rep(1, J)/J, 
+#'              a.pi0=27, b.pi0=360, J=J)
+#'              
+#' fit_binary<- comire.gibbs(premature, dde, family="binary", 
+#'                           mcmc=mcmc, prior=prior, seed=5, max.x=180)
+#'                           
+#'                           
+#' ## 2. continuous case ##
 #' 
 #' prior <- list(mu.theta=mean(gestage), k.theta=10, eta=rep(1, J)/J, 
 #'               alpha=rep(1,H)/H, a=2, b=2, J=J, H=H)
-#' fit0 <- comire.gibbs(gestage, dde, family="continuous", 
+#'               
+#' fit1 <- comire.gibbs(gestage, dde, family="continuous", 
 #'                      mcmc=mcmc, prior=prior, seed=5, max.x=180)
 #' 
 #' 
-#' ## 1.1 only one confounding covariate  ##
+#' ## 2.2 One confunder ##
 #' 
 #' mage_std <- scale(mage, center = T, scale = T) 
 #' 
 #' prior <- list(mu.theta=mean(gestage), k.theta=10, mu.gamma=0, k.gamma=10, 
 #'               eta=rep(1, J)/J, alpha=1/H, a=2, b=2, H=H, J=J)
-#' fit1 <- comire.gibbs(gestage, dde, mage_std, family="continuous", 
+#'               
+#' fit2 <- comire.gibbs(gestage, dde, mage_std, family="continuous", 
 #'               mcmc=mcmc, prior=prior, seed=5, max.x=180)
 #' 
 #' 
-#' ## 1.2 more than one confounding covariates  ##
+#' ## 2.3 More confunders ##
 #' 
-#' z <- cbind(mage, mbmi, mbmi^2, sei)
-#' z <- scale(z, center = T, scale = T) 
-#' z <- as.matrix(cbind(z, CPP$smoke))
-#' mod<- lm(gestage ~ dde + )
+#' Z <- cbind(mage, mbmi, sei)
+#' Z <- scale(Z, center = T, scale = T)
+#' Z <- as.matrix(cbind(Z, CPP$smoke))
+#' colnames(Z) <- c("age", "BMI", "sei", "smoke")
+#'
+#' mod <- lm(gestage ~ dde + Z)
+#' prior <- list(mu.theta = mod$coefficients[1], k.theta = 10,
+#'               mu.gamma = mod$coefficients[-c(1, 2)], sigma.gamma = diag(rep(10, 4)),
+#'               eta = rep(1, J)/J, alpha = 1/H, a = 2, b = 2, H = H, J = J)
+#'               
+#' fit3 <- comire.gibbs(y = gestage, x = dde, z = Z, family = "continuous", mcmc = mcmc, 
+#'                      prior = prior, seed = 5)
 #' 
-#' prior <- list(mu.theta=mod$coefficients[1], k.theta=10, 
-#'               mu.gamma=mod$coefficients[-c(1,2)], sigma.gamma=diag(rep(10,5)), 
-#'               eta=rep(1, J)/J, alpha=1/H, a=2, b=2, H=H, J=J)
-#' fit2 <- comire.gibbs(y, x, z, family="continuous", 
-#'                      mcmc=mcmc, prior=prior, seed=5)
-#' 
-#' 
-#' ## 2. binary case ##
-#' 
-#' premature <- as.numeric(y<37)
-#' 
-#' prior <- list(pi0=mean(gestage), eta=rep(1, J)/J, 
-#'              a.pi0=27, b.pi0=360, J=J)
-#' fit_binary<- comire.gibbs(premature, dde, family="binary", 
-#'                           mcmc=mcmc, prior=prior, seed=5, max.x=180)
-#' 
-#' }
+#' } 
 #' }
 #' 
 #' 
@@ -166,7 +173,8 @@
 
 comire.gibbs<- function(y, x, z = NULL, family = 'continuous', 
                         grid = NULL, mcmc, prior, state=NULL, 
-                        seed, max.x = max(x), z.val=NULL){
+                        seed, max.x = max(x), z.val=NULL, 
+                        verbose = TRUE){
     
     # check family
     if(is.null(family)) stop ("Missing family parameter")
@@ -174,52 +182,52 @@ comire.gibbs<- function(y, x, z = NULL, family = 'continuous',
     # family="continuous"|"binary"
     if(!(family=="continuous"|family=="binary")) stop("Wrong family specification")
     
-    # controllo valori 0|1
+    # check binomial
     if(family=="binary" & any((levels(factor(y))==c(0,1))==F)) stop("Values of y must be 0 or 1")
     
-    # per caso binarye non posso usare covariate
+    # confunders not allowed for binary case
     if(family=="binary" & !is.null(z)) stop("Confounders not (yet) implemented if family = 'binary'")
 
     if(family=="binary" & is.null(z)) {
-      cat("CoMiRe model fit via Gibbs Sampler\n")
-      cat("Family: binary\n")
+      if(verbose)cat("CoMiRe model fit via Gibbs Sampler\n")
+      if(verbose)cat("Family: binary\n")
       call <- paste(c(deparse(substitute(y)), " ~ . | beta(", deparse(substitute(x)), ")"), collapse="")  
-      res <- comire.gibbs.binary(y, x, mcmc, prior, seed, max.x=max(x))
+      res <- comire.gibbs.binary(y, x, mcmc, prior, seed, max.x=max(x), verbose = verbose)
       as.classCoMiRe(call= call, out = res, nrep= mcmc$nrep, nb= mcmc$nb, bin = TRUE)
     }
 
     else if(family=="continuous" & is.null(z)) {
-      cat("CoMiRe model fit via Gibbs Sampler\n")
-      cat("Family: continuous\n")
+      if(verbose)cat("CoMiRe model fit via Gibbs Sampler\n")
+      if(verbose)cat("Family: continuous\n")
       call <- paste(c(deparse(substitute(y)), " ~ . | beta(", 
                       deparse(substitute(x)), ")"), collapse="")  
       res <- comire.gibbs.continuous(y, x, grid=grid, mcmc, prior, state=state, 
-                                     seed, max.x=max(x))
+                                     seed, max.x=max(x), verbose = verbose)
       as.classCoMiRe(call= call, out = res, nrep= mcmc$nrep, nb= mcmc$nb)
     }
   
     else if(family=="continuous" & !is.null(z) & (is.null(ncol(z)) | ncol(z)==1) ) {
-      cat("CoMiRe model fit via Gibbs Sampler\n")
-      cat("Family: continuous \n")
+      if(verbose)cat("CoMiRe model fit via Gibbs Sampler\n")
+      if(verbose)cat("Family: continuous \n")
       call <- paste(c(deparse(substitute(y)), " ~ ", 
                       deparse(substitute(z)), " | beta(", 
                       deparse(substitute(x)), ")"), collapse="")  
       res <- comire.gibbs.continuous.confunder(y, x, z, grid=grid, mcmc, prior, 
                                                state=state, seed, max.x=max(x),
-                                               z.val=z.val)
+                                               z.val=z.val, verbose = verbose)
       as.classCoMiRe(call= call, out = res$out,  z = z, z.val = res$z.val, 
                      nrep = mcmc$nrep, nb = mcmc$nb)
     }
   
     else if(family=="continuous" & !is.null(z) & !is.null(ncol(z))) {
-      cat("CoMiRe model fit via Gibbs Sampler\n")
-      cat("Family: continuous \n")
+      if(verbose)cat("CoMiRe model fit via Gibbs Sampler\n")
+      if(verbose)cat("Family: continuous \n")
       call <- paste(c(deparse(substitute(y)), " ~ ",
                       paste(attr(z, "dimnames")[[2]], collapse =" + "), 
                       " | beta(", deparse(substitute(x)), ")"), collapse="")
       res <- comire.gibbs.continuous.confunders(y, x, z, grid=grid, mcmc, prior, 
                                                 state=state, seed, max.x=max(x), 
-                                                z.val=z.val)
+                                                z.val=z.val, verbose = verbose)
       as.classCoMiRe(call = call, out = res$out, z = z, z.val = res$z.val, 
                      nrep = mcmc$nrep, nb = mcmc$nb, 
                      univariate = FALSE)

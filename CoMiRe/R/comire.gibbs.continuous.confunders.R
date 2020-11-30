@@ -1,15 +1,7 @@
 comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior, 
                             state=NULL, seed=5, max.x=ceiling(max(x)),
-                            z.val=NULL){
+                            z.val=NULL, verbose = TRUE){
   
-  #y nx1
-  #x nx1
-  #z nxp
-  
-  # prior: mu.theta, k.theta, 
-  # mu.gamma (px1), sigma.gamma (pxp) N.B. MATRICE SIMMETRICA DEF POSITIVA
-  # eta(Jx1), alpha(Hx1), a, b, H, J)
-  # mcmc <- list(nrep=5000, nb=2000, thin=5, ndisplay=4)
   
   if(is.null(z.val)){
     z.val <- apply(z, 2, function(x) if(length(table(x))>2){mean(x)} 
@@ -96,8 +88,12 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
   for(ite in 2:(mcmc$nrep+mcmc$nb))
   {
     # 0. Print the iteration
-    if(ite==mcmc$nb) cat("Burn in done\n")
-    if(ite %in% print_now) cat(ite, "iterations over", mcmc$nrep+mcmc$nb, "\n")
+    if(verbose)
+    {
+      if(ite==mcmc$nb) cat("Burn in done\n")
+      if(ite %in% print_now) cat(ite, "iterations over",
+                                 mcmc$nrep+mcmc$nb, "\n")
+    }
     
     # 1. Update d_i marginalising out b_i from
     d <- rbinom(n, 1, prob=(beta_i*f1i)/((1-beta_i)*f0i + beta_i*f1i) )
@@ -213,7 +209,6 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
   ci.f0 <- apply(f0[-c(1:mcmc$nb),], 2, quantile, probs=c(0.025, 0.975))
   ci.f1 <- apply(f1[-c(1:mcmc$nb),], 2, quantile, probs=c(0.025, 0.975))
   ci.nu0 <- apply(nu0[-c(1:mcmc$nb),], 2, quantile, probs=c(0.025, 0.975))
-  #ci.nu1 <- quantile(nu1[-c(1:mcmc$nb)], probs=c(0.025, 0.975))
   ci.ga <- apply(ga[-c(1:mcmc$nb),,drop=F], 2, quantile, probs=c(0.025, 0.975))
 
   # output

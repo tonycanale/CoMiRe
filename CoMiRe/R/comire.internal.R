@@ -51,9 +51,6 @@ psdp_uni <- function(index, y, z, cluster){
   sum(y[cluster==index]*z[cluster==index])
 }
 
-#-----------------
-#Internal functions comireX.gibbs.multi
-
 labelling_b_multi <- function(i, w, phi, f0i, f1i)
 {
   probs <- w*((1-phi[i,])*f0i[i] + phi[i,]*f1i[i])
@@ -72,7 +69,7 @@ labelling_c_multi <- function(i, y, z, nu, theta, tau, ga)
 
 #
 
-mixdensity_multi <- function(i, y, z, nu, theta, tau, ga) #se ci sono problemi: n
+mixdensity_multi <- function(i, y, z, nu, theta, tau, ga) 
 {
   kernels <- dnorm(y[i], theta+as.vector(crossprod(z[i,],ga)) , sqrt(1/tau))
   fji <- sum(nu * kernels)

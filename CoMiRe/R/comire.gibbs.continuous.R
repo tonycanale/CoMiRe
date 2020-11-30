@@ -1,5 +1,5 @@
 comire.gibbs.continuous <-
-  function(y, x, grid=NULL, mcmc, prior, state=NULL, seed, max.x=max(x)){
+  function(y, x, grid=NULL, mcmc, prior, state=NULL, seed, max.x=max(x), verbose = TRUE){
     # prior: mu.theta, k.theta, eta(Jx1), alpha(Hx1), a, b, H, J)
 
     # internal working variables
@@ -77,8 +77,12 @@ comire.gibbs.continuous <-
     for(ite in 2:(mcmc$nrep+mcmc$nb))
     {
       # 0. Print the iteration
-      if(ite==mcmc$nb) cat("Burn in done\n")
-      if(ite %in% print_now) cat(ite, "iterations over", mcmc$nrep+mcmc$nb, "\n")
+      if(verbose)
+      {
+        if(ite==mcmc$nb) cat("Burn in done\n")
+        if(ite %in% print_now) cat(ite, "iterations over",
+                                   mcmc$nrep+mcmc$nb, "\n")
+      }
 
       # 1. Update d_i marginalising out b_i from
       d <- rbinom(n, 1, prob=(beta_i*f1i)/((1-beta_i)*f0i + beta_i*f1i))

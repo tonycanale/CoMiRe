@@ -1,4 +1,4 @@
-comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min(x)){
+comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min(x), verbose = TRUE){
   # prior: eta, a.pi0, b.pi0, J
   
   # internal working variables
@@ -40,9 +40,12 @@ comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min
   for(ite in 2:(mcmc$nrep+mcmc$nb))
   {
     # 0. Print the iteration
-    if(ite==mcmc$nb) cat("Burn in done\n")
-    if(ite %in% print_now) cat(ite, "iterations over",
+    if(verbose)
+      {
+      if(ite==mcmc$nb) cat("Burn in done\n")
+      if(ite %in% print_now) cat(ite, "iterations over",
                                mcmc$nrep+mcmc$nb, "\n")
+      }
     
     # 1. Aggiorno d_i (dove sono rispetto a Po e Pinf)
     # 1. Update d_i marginalising out b_i from

@@ -1,8 +1,5 @@
 comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, state=NULL, seed, 
-                             max.x=ceiling(max(x)), z.val=NULL){
-  
-    # prior: mu.theta, k.theta, mu.gamma, k.gamma, eta(Jx1), alpha(Hx1), a, b, H, J)
-    # mcmc <- list(nrep=5000, nb=2000, thin=5, ndisplay=4)
+                             max.x=ceiling(max(x)), z.val=NULL, verbose = TRUE){
   
     if(is.null(z.val)){
       if(!is.factor(z)){
@@ -89,8 +86,12 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
     for(ite in 2:(mcmc$nrep+mcmc$nb))
     {
       # 0. Print the iteration
-      if(ite==mcmc$nb) cat("Burn in done\n")
-      if(ite %in% print_now) cat(ite, "iterations over", mcmc$nrep+mcmc$nb, "\n")
+      if(verbose)
+      {
+        if(ite==mcmc$nb) cat("Burn in done\n")
+        if(ite %in% print_now) cat(ite, "iterations over",
+                                   mcmc$nrep+mcmc$nb, "\n")
+      }
       
       # 1. Update d_i marginalising out b_i from
       d = rbinom(n, 1, prob=(beta_i*f1i)/((1-beta_i)*f0i + beta_i*f1i))
@@ -103,7 +104,7 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
       ind1 <- c(1:n)[d==1]
       c <- sapply(ind0, labelling_c_uni, y=y, z=z, nu=nu0[ite-1,], theta=th0[ite-1,], tau=tau0[ite-1,], ga=ga[ite-1])
       
-      # 4. Update the mixture weights sampling from dirichlet
+      # 4. Update the mixture weights sampling from Dirichlet
       n_h <- table(factor(c, levels=1:H))
       nu0[ite,] <- as.double(rdirichlet(1, as.double(prior$alpha + n_h)))
       
@@ -116,8 +117,6 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
       beta_i[beta_i<0] <- 0
 
       # 6. Update gamma
-      # m=(0,1) i:di=m
-      # h=(1:H) i:ci=h
       n_0h <- n_h 
       n_1h <- length(ind1)
       
