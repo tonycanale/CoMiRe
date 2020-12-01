@@ -2,6 +2,14 @@
 #include "sample.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
+//' @title Labelling bb
+//' 
+//' @name labelling_bb_C
+//' 
+//' @param w w
+//' @param phi phi
+//' @param P0 P0
+//' @param P1 P1
 // [[Rcpp::export]]
 arma::vec labelling_bb_C(arma::vec w, arma::mat phi, arma::vec P0, arma::vec P1){
   

@@ -1,3 +1,27 @@
+#' @name comire.gibbs.binary
+#'
+#' @title Gibbs sampler for CoMiRe model with binary response 
+#' 
+#' @description Posterior inference via Gibbs sampler for CoMiRe model with binary response
+#' 
+#' @param y numeric vector for the response.
+#' @param x numeric vector for the covariate relative to the dose of exposure.
+#' @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
+#' @param prior a list containing the values of the hyperparameters. 
+#' It must include the following values: 
+#' \itemize{
+#' \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
+#' \item \code{a.pi0} and \code{b.pi0}, the prior parameters of the prior beta distribution for \eqn{\pi_0},
+#' \item \code{J}, parameter controlling the number of elements of the Ispline basis.
+#' }
+#' @param seed seed for random initialization.
+#' @param max.x maximum value allowed for \code{x}.
+#' @param min.x minimum value allowed for \code{x}.
+#' @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
+#' 
+#' @importFrom stats dbinom rbeta
+#' @importFrom gtools rdirichlet
+
 comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min(x), verbose = TRUE){
   # prior: eta, a.pi0, b.pi0, J
   
@@ -32,8 +56,8 @@ comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min
   beta_i <- as.double(phiX %*% w[1, ])
   
   ## P0 and P1: densit? osservate
-  P0 <- dbinom(y, 1, pi0[1])
-  P1 <- dbinom(y, 1, 1)
+  P0 <- stats::dbinom(y, 1, pi0[1])
+  P1 <- stats::dbinom(y, 1, 1)
   
   # start the MCMC simulation 
   set.seed(seed)
@@ -57,7 +81,7 @@ comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min
 
     # 3. Update w from the Dirichlet and obtain an updated function beta_i
     eta.post <- as.double(prior$eta + table(factor(b,levels=1:length(w[ite-1,]))))
-    w[ite, ] <- as.double(rdirichlet(1, eta.post))
+    w[ite, ] <- as.double(gtools::rdirichlet(1, eta.post))
     beta_i <- as.numeric(phiX %*% w[ite, ])
     beta_i[beta_i>1] <- 1
     beta_i[beta_i<0] <- 0
@@ -65,11 +89,11 @@ comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min
     # 4. Update pi0
     n_0 <- sum(d==0)
     y_i <- sum(y[d==0])
-    pi0[ite] <- as.double(rbeta(1, as.double(prior$a.pi0 + y_i),
+    pi0[ite] <- as.double(stats::rbeta(1, as.double(prior$a.pi0 + y_i),
                                as.double(prior$b.pi0 + n_0 - y_i)))
     
     # 5. Update the values of the densities in the observed points
-    P0 <- dbinom(y, 1, pi0[ite])
+    P0 <- stats::dbinom(y, 1, pi0[ite])
     
     # 6. compute some posterior quanities of interest
     beta_x[ite, ] <- phi.grid %*% w[ite, ]

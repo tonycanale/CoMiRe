@@ -24,7 +24,6 @@
 #' @author Antonio Canale, Arianna Falcioni
 #' 
 
-#N.B. MODIFICARE HELP >> non serve mettere f0 e f1!!!
 as.classCoMiRe <- function(
   call = NULL,
   out = NULL,
@@ -57,6 +56,7 @@ as.classCoMiRe <- function(
 # Function for f0 and f1 with non-default values of z.val
 #' @name predict_new_z
 #' 
+#' @importFrom stats dnorm var
 #' @export 
 #' 
 #' @usage predict_new_z(fit, y, z.val)
@@ -78,12 +78,12 @@ as.classCoMiRe <- function(
 
 predict_new_z <- function(fit, y, z.val){
   if(fit$univariate){
-    y.grid <- seq(min(y)-sqrt(var(y)), max(y)+sqrt(var(y)), length = 100)	
+    y.grid <- seq(min(y)-sqrt(stats::var(y)), max(y)+sqrt(stats::var(y)), length = 100)	
     f0 = matrix(NA, fit$nrep+fit$nb , length(y.grid))
     f1 = matrix(NA, fit$nrep+fit$nb , length(y.grid))
     for(ite in 2:(fit$nrep+fit$nb)){
       f0[ite,] <- sapply(1:length(y.grid), mixdensity_uni, y=y.grid, z=rep(z.val,length(y.grid)), nu=fit$mcmc$nu0[ite,], theta=fit$mcmc$th0[ite,], tau=fit$mcmc$tau0[ite,], ga=fit$mcmc$ga[ite])
-      f1[ite,] <- dnorm(y.grid, (fit$mcmc$th1[ite]+rep(z.val,length(y.grid))*fit$mcmc$ga[ite]) , sqrt(1/fit$mcmc$tau1[ite]))
+      f1[ite,] <- stats::dnorm(y.grid, (fit$mcmc$th1[ite]+rep(z.val,length(y.grid))*fit$mcmc$ga[ite]) , sqrt(1/fit$mcmc$tau1[ite]))
     }
     as.classCoMiRe(
       call = fit$call,
@@ -98,7 +98,7 @@ predict_new_z <- function(fit, y, z.val){
                  univariate = fit$univariate)
   }
   else{
-    y.grid <- seq(min(y)-sqrt(var(y)), max(y)+sqrt(var(y)), length = 100)	
+    y.grid <- seq(min(y)-sqrt(stats::var(y)), max(y)+sqrt(stats::var(y)), length = 100)	
     z_val<- matrix(rep(z.val, length(y.grid)), ncol=length(z.val), byrow=T) #?
     f0 = matrix(NA, fit$nrep+fit$nb, length(y.grid))
     f1 = matrix(NA, fit$nrep+fit$nb, length(y.grid))
@@ -106,7 +106,7 @@ predict_new_z <- function(fit, y, z.val){
       f0[ite,] <- sapply(1:length(y.grid), mixdensity_multi, y=y.grid, z=z_val, 
                          nu=fit$mcmc$nu0[ite,], theta=fit$mcmc$th0[ite,], 
                          tau=fit$mcmc$tau0[ite,], ga=fit$mcmc$ga[ite,])
-      f1[ite,] <- dnorm(y.grid,(fit$mcmc$th1[ite]+z_val%*%fit$mcmc$ga[ite,]) , sqrt(1/fit$mcmc$tau1[ite]))
+      f1[ite,] <- stats::dnorm(y.grid,(fit$mcmc$th1[ite]+z_val%*%fit$mcmc$ga[ite,]) , sqrt(1/fit$mcmc$tau1[ite]))
     }
     as.classCoMiRe(call = fit$call,
                    out=list(post.means=fit$post.means, ci=fit$ci, mcmc=fit$mcmc), 
@@ -129,6 +129,11 @@ predict_new_z <- function(fit, y, z.val){
 
 #' @rdname post.pred.check
 #' 
+#' @importFrom ggplot2 theme_set theme_bw ggplot aes geom_line labs geom_point coord_cartesian
+#' @importFrom splines2 iSpline
+#' @importFrom stats pnorm rbinom
+#' @importFrom KernSmooth locpoly
+#' @importFrom NonpModelCheck localpoly.reg
 #' @export 
 #' 
 #' @usage post.pred.check(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x), 
@@ -168,35 +173,35 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
     if(is.null(fit$z)){
       index <- c((mcmc$nb+1):(mcmc$nrep+mcmc$nb))[1:((mcmc$nrep)/mcmc$thin)*mcmc$thin]
       knots <- seq(min(x)+1, max.x, length=J-3)
-      phi <- function(x) iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
+      phi <- function(x) splines2::iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
       res <- rep(NA, length(index))
       tailp.mcmc1 <- function(i, pi0, mu0, tau0, mu1, tau1, theta, phi_x)
         {
         beta_x <-  as.double(phi_x %*% theta[i,])
-        res <-  beta_x * pnorm(a, mu1[i], 1/sqrt(tau1[i]))
+        res <-  beta_x * stats::pnorm(a, mu1[i], 1/sqrt(tau1[i]))
         for(h in 1:ncol(pi0))
           {
-          res <- res + (1-beta_x)*pi0[i,h] * pnorm(a, mu0[i,h], 1/sqrt(tau0[i,h]))     
+          res <- res + (1-beta_x)*pi0[i,h] * stats::pnorm(a, mu0[i,h], 1/sqrt(tau0[i,h]))     
           }
-        below <- rbinom(length(res), 1, res)
-        smoothed <- locpoly(x=x, y=below, degree=0, bandwidth = bandwidth, 
+        below <- stats::rbinom(length(res), 1, res)
+        smoothed <- KernSmooth::locpoly(x=x, y=below, degree=0, bandwidth = bandwidth, 
                         gridsize = 100, range.x = c(0, max.x))$y
         }
       
       belowa.comire <- sapply(index, tailp.mcmc1, fit$mcmc$nu0, fit$mcmc$th0, fit$mcmc$tau0,
                 fit$mcmc$th1, fit$mcmc$tau1, fit$mcmc$w, phi(x))
       
-      belowa.true <- locpoly(x=x, y=y<a, degree=0, bandwidth = bandwidth, gridsize = 100, range.x = c(0, max.x))$y
+      belowa.true <- KernSmooth::locpoly(x=x, y=y<a, degree=0, bandwidth = bandwidth, gridsize = 100, range.x = c(0, max.x))$y
       
       ppc.data <- data.frame(cbind(x=seq(0,max.x, length=100), 
                                    Fx=c(c(belowa.comire[,1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery])), 
                                    repl=c(rep(1:length(1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery),each=100))))
       
-      ppc <-  ggplot2::ggplot(ppc.data, aes(x=.data$x, y=.data$Fx)) + 
-        ggplot2::geom_line(alpha=0.25, aes(group=factor(.data$repl)), col="grey") +
-        ggplot2::geom_line(data=data.frame(x=seq(0,max.x, length=100), y=belowa.true), aes(x=.data$x, y=.data$y), col=1)+
+      ppc <-  ggplot2::ggplot(ppc.data, ggplot2::aes(x=.data$x, y=.data$Fx)) + 
+        ggplot2::geom_line(alpha=0.25, ggplot2::aes(group=factor(.data$repl)), col="grey") +
+        ggplot2::geom_line(data=data.frame(x=seq(0,max.x, length=100), y=belowa.true), ggplot2::aes(x=.data$x, y=.data$y), col=1)+
         ggplot2::labs(x = "", y = expression(F(a *"| x")*" | data")) +
-        ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
+        ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), ggplot2::aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
       
       ppc + ggplot2::coord_cartesian(ylim=c(0,1), xlim=xlim) 
       
@@ -205,21 +210,21 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
       if(fit$univariate){
         index <- c((mcmc$nb+1):(mcmc$nrep+mcmc$nb))[1:((mcmc$nrep)/mcmc$thin)*mcmc$thin]
         knots <- seq(min(x)+1, max.x, length=J-3)
-        phi <- function(x) iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
+        phi <- function(x) splines2::iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
         res <- rep(NA, length(index))
         
         tailp.mcmc2 <- function(i, pi0, th0, tau0, th1, tau1, w, ga, phi_x)
         {
           beta_x <-  as.double(phi_x %*% w[i,])
-          res <-  beta_x * pnorm(a, th1[i]+ga[i]*fit$z, 1/sqrt(tau1[i]))
+          res <-  beta_x * stats::pnorm(a, th1[i]+ga[i]*fit$z, 1/sqrt(tau1[i]))
           
           for(h in 1:ncol(pi0))
           {
-            res <- res + (1-beta_x) * pi0[i,h] * pnorm(a, th0[i,h]+ga[i]*fit$z , 1/sqrt(tau0[i,h]))     
+            res <- res + (1-beta_x) * pi0[i,h] * stats::pnorm(a, th0[i,h]+ga[i]*fit$z , 1/sqrt(tau0[i,h]))     
           }
           
-          below <- rbinom(length(res), 1, res) 
-          smoothed <- localpoly.reg( X=as.matrix(cbind(x,fit$z)), Y=below, 
+          below <- stats::rbinom(length(res), 1, res) 
+          smoothed <- NonpModelCheck::localpoly.reg( X=as.matrix(cbind(x,fit$z)), Y=below, 
                                      points=as.matrix(cbind(seq(0, max.x, length=100), 
                                                             seq(min(fit$z), max(fit$z), length=100))),
                                      bandwidth = rep(bandwidth, 2), degree.pol = 0)$predicted
@@ -237,11 +242,11 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
                                      Fx=c(c(belowa.comire[,1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery])), 
                                      repl=c(rep(1:length(1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery),each=100))) )
         
-        ppc <-  ggplot2::ggplot(ppc.data, aes(x=.data$x, y=.data$Fx)) + 
-          ggplot2::geom_line(alpha=0.25, aes(group=factor(.data$repl)), col="grey") +
-          ggplot2::geom_line(data=data.frame(x=seq(0,max.x, length=100), y=belowa.true), aes(x=.data$x, y=.data$y), col=1)+
+        ppc <-  ggplot2::ggplot(ppc.data, ggplot2::aes(x=.data$x, y=.data$Fx)) + 
+          ggplot2::geom_line(alpha=0.25, ggplot2::aes(group=factor(.data$repl)), col="grey") +
+          ggplot2::geom_line(data=data.frame(x=seq(0,max.x, length=100), y=belowa.true), ggplot2::aes(x=.data$x, y=.data$y), col=1)+
           ggplot2::labs(x = "", y = expression(F(a *"| x,z")*" | data")) +
-          ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
+          ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), ggplot2::aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
         
         ppc + ggplot2::coord_cartesian(ylim=c(0,1), xlim=xlim)
 
@@ -249,28 +254,28 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
       else{
         index <- c((mcmc$nb+1):(mcmc$nrep+mcmc$nb))[1:((mcmc$nrep)/mcmc$thin)*mcmc$thin]
         knots <- seq(min(x)+1, max.x, length=J-3)
-        phi <- function(x) iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
+        phi <- function(x) splines2::iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
         res <- rep(NA, length(index))
         
         tailp.mcmc3 <- function(i, pi0, th0, tau0, th1, tau1, w, ga, phi_x)
         {
           
           beta_x <-  as.double(phi_x %*% w[i,])
-          res <-  beta_x * pnorm(a, th1[i]+crossprod(t(fit$z), ga[i,]), 1/sqrt(tau1[i]))
+          res <-  beta_x * stats::pnorm(a, th1[i]+crossprod(t(fit$z), ga[i,]), 1/sqrt(tau1[i]))
           
           for(h in 1:ncol(pi0))
           {
-            res <- res + (1-beta_x) * pi0[i,h] * pnorm(a, th0[i,h]+crossprod(t(fit$z), ga[i,]) , 1/sqrt(tau0[i,h]))     
+            res <- res + (1-beta_x) * pi0[i,h] * stats::pnorm(a, th0[i,h]+crossprod(t(fit$z), ga[i,]) , 1/sqrt(tau0[i,h]))     
           }
           
-          below <- rbinom(length(res), 1, res) 
+          below <- stats::rbinom(length(res), 1, res) 
           
           p <- ncol(fit$z)
           z.points<- matrix(NA, nrow=100, ncol=p)
           for(j in 1:p){
             z.points[,j]<- seq(min(fit$z[,j]), max(fit$z[,j]), length=100)
           }
-          smoothed <- localpoly.reg( X=as.matrix(cbind(x,fit$z)), Y=below, 
+          smoothed <- NonpModelCheck::localpoly.reg( X=as.matrix(cbind(x,fit$z)), Y=below, 
                                      points=as.matrix(cbind(seq(0, max.x, length=100), z.points)),
                                      bandwidth = rep(bandwidth, p+1), degree.pol = 0)$predicted
         }
@@ -279,19 +284,19 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
                       fit$mcmc$th1, fit$mcmc$tau1, fit$mcmc$w, fit$mcmc$ga, phi(x))
         points <- matrix(NA, ncol=ncol(fit$z), nrow=100)
         for(j in 1:ncol(fit$z)) points[,j]<- seq(min(fit$z[,j]), max(fit$z[,j]), length=100)
-        belowa.true <- localpoly.reg(as.matrix(cbind(x,fit$z)), Y=y<a, 
+        belowa.true <- NonpModelCheck::localpoly.reg(as.matrix(cbind(x,fit$z)), Y=y<a, 
                                        points=as.matrix(cbind(seq(0, max.x, length=100), points)), 
                                        bandwidth=rep(bandwidth,(ncol(fit$z))+1), degree.pol = 0)$predicted
         
         ppc.data <- data.frame(cbind(x=seq(0,max.x, length=100),
                                      Fx=c(c(belowa.comire[,1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery])), 
                                      repl=c(rep(1:length(1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery),each=100))))
-        ppc <-  ggplot2::ggplot(ppc.data, aes(x=.data$x, y=.data$Fx)) + 
-          ggplot2::geom_line(alpha=0.25, aes(group=factor(.data$repl)), col="grey") +
+        ppc <-  ggplot2::ggplot(ppc.data, ggplot2::aes(x=.data$x, y=.data$Fx)) + 
+          ggplot2::geom_line(alpha=0.25, ggplot2::aes(group=factor(.data$repl)), col="grey") +
           ggplot2::labs(x = "", y = expression(F(a*";x,z")*" | data")) +
           ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), 
-                              aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) +
-          ggplot2::geom_line(data=data.frame(x=seq(0,max.x, length=100), y=belowa.true), aes(x=.data$x, y=.data$y), col=1)
+                              ggplot2::aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) +
+          ggplot2::geom_line(data=data.frame(x=seq(0,max.x, length=100), y=belowa.true), ggplot2::aes(x=.data$x, y=.data$y), col=1)
         ppc + ggplot2::coord_cartesian(ylim=c(0,1), xlim=xlim) 
         
       }
@@ -310,13 +315,13 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
                                  pi_x=c(c(pi_x_prova[,1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery])), 
                                  repl=c(rep(1:length(1:(((mcmc$nrep)/mcmc$thin)/oneevery)*oneevery),each=100))))
     
-    true <- locpoly(x=x, y=y, degree=1, bandwidth = bandwidth, gridsize = 500, range.x = c(0, max(x)))
+    true <- KernSmooth::locpoly(x=x, y=y, degree=1, bandwidth = bandwidth, gridsize = 500, range.x = c(0, max(x)))
   
-    ppc <- ggplot2::ggplot(ppc.data, aes(x=.data$x, y=.data$pi_x)) + 
-      ggplot2::geom_line(alpha=0.25, aes(group=factor(.data$repl)), col="grey")+
-      ggplot2::geom_line(data=data.frame(x=seq(0,max(x), length=500), y=true$y), aes(x=.data$x, y=.data$y), col=1)+
+    ppc <- ggplot2::ggplot(ppc.data, ggplot2::aes(x=.data$x, y=.data$pi_x)) + 
+      ggplot2::geom_line(alpha=0.25, ggplot2::aes(group=factor(.data$repl)), col="grey")+
+      ggplot2::geom_line(data=data.frame(x=seq(0,max(x), length=500), y=true$y), ggplot2::aes(x=.data$x, y=.data$y), col=1)+
       ggplot2::labs(x = "", y = expression(pi[x])) +
-      ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
+      ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), ggplot2::aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
     
     ppc + ggplot2::coord_cartesian(ylim=c(0,1), xlim=xlim)
 
@@ -329,6 +334,10 @@ post.pred.check <- function(y, x, z, fit, mcmc, J=10, H=10, a, max.x=max(x),
 
 #' @rdname fit.pdf.mcmc
 #' 
+#' @importFrom ggplot2 theme_set theme_bw ggplot aes geom_line geom_ribbon ylim xlim labs theme element_text
+#' @importFrom splines2 iSpline
+#' @importFrom stats dnorm quantile var
+#' @importFrom grid unit
 #' @export 
 #' 
 #' @usage fit.pdf.mcmc(y, x, fit, mcmc, J=10, H = 10, alpha = 0.05, 
@@ -361,21 +370,21 @@ fit.pdf.mcmc <- function(y, x, fit, mcmc, J=10, H=10, alpha=0.05, max.x=max(x), 
   
   if(fit$bin) stop("No function fit.pdf.mcmc defined for family = 'binary'
          (no density function for a binary variable!)\n")
-  y.grid <- if(is.null(y.grid)) seq(min(y)-sqrt(var(y)), max(y) + sqrt(var(y)), length = 100) else y.grid 
+  y.grid <- if(is.null(y.grid)) seq(min(y)-sqrt(stats::var(y)), max(y) + sqrt(stats::var(y)), length = 100) else y.grid 
   ggplot2::theme_set(ggplot2::theme_bw())
   index <- c((mcmc$nb+1):(mcmc$nrep+mcmc$nb))[1:((mcmc$nrep)/mcmc$thin)*mcmc$thin]
   knots <- seq(min(x)+1, max.x, length=J-3)
-  phi <- function(x) iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
+  phi <- function(x) splines2::iSpline(x, df=3, knots = knots, Boundary.knots=c(0,max.x+1), intercept = FALSE)
   
   if(is.null(fit$z)){
       # comire senza confunders
       dens.mcmc1 <- function(i, nu0, mu0, tau0, mu1, tau1, w, phi_x, y.grid)
       {
         beta_x <-  as.double(phi_x %*% w[i,])
-        res <-  beta_x * dnorm(y.grid, mu1[i], 1/sqrt(tau1[i]))
+        res <-  beta_x * stats::dnorm(y.grid, mu1[i], 1/sqrt(tau1[i]))
         for(h in 1:ncol(nu0))
         {
-          res <- res + (1-beta_x)*nu0[i,h] * dnorm(y.grid, mu0[i,h], 1/sqrt(tau0[i,h]))     
+          res <- res + (1-beta_x)*nu0[i,h] * stats::dnorm(y.grid, mu0[i,h], 1/sqrt(tau0[i,h]))     
         }
         res
       }
@@ -389,10 +398,10 @@ fit.pdf.mcmc <- function(y, x, fit, mcmc, J=10, H=10, alpha=0.05, max.x=max(x), 
         dens.mcmc2 <- function(i, nu0, th0, tau0, th1, tau1, w, phi_x, ga, y.grid)
         {
           beta_x <-  as.double(phi_x %*% w[i,])
-          res <-  beta_x * dnorm(y.grid, th1[i]+ga[i]*fit$z.val, 1/sqrt(tau1[i]) )
+          res <-  beta_x * stats::dnorm(y.grid, th1[i]+ga[i]*fit$z.val, 1/sqrt(tau1[i]) )
           for(h in 1:ncol(nu0))
           {
-            res <- res + (1-beta_x)*nu0[i,h] * dnorm(y.grid, th0[i,h]+ga[i]*fit$z.val , 1/sqrt(tau0[i,h]))     
+            res <- res + (1-beta_x)*nu0[i,h] * stats::dnorm(y.grid, th0[i,h]+ga[i]*fit$z.val , 1/sqrt(tau0[i,h]))     
           }
           res
         }
@@ -405,10 +414,10 @@ fit.pdf.mcmc <- function(y, x, fit, mcmc, J=10, H=10, alpha=0.05, max.x=max(x), 
         dens.mcmc3 <- function(i, nu0, th0, tau0, th1, tau1, w, phi_x, ga, y.grid)
         {
           beta_x <-  as.double(phi_x %*% w[i,])
-          res <-  beta_x * dnorm(y.grid, th1[i]+crossprod(t(fit$z.val), ga[i,]), 1/sqrt(tau1[i]) )
+          res <-  beta_x * stats::dnorm(y.grid, th1[i]+crossprod(t(fit$z.val), ga[i,]), 1/sqrt(tau1[i]) )
           for(h in 1:ncol(nu0))
           {
-            res <- res + (1-beta_x)*nu0[i,h] * dnorm(y.grid, th0[i,h]+crossprod(t(fit$z.val), ga[i,]) , 1/sqrt(tau0[i,h]))     
+            res <- res + (1-beta_x)*nu0[i,h] * stats::dnorm(y.grid, th0[i,h]+crossprod(t(fit$z.val), ga[i,]) , 1/sqrt(tau0[i,h]))     
           }
           res
         }
@@ -422,15 +431,15 @@ fit.pdf.mcmc <- function(y, x, fit, mcmc, J=10, H=10, alpha=0.05, max.x=max(x), 
   for(j in 1:length(x.val))
   {
     resj <- densapply(x.val[j])
-    pdf_fit <- cbind( rowMeans(resj), t(apply(resj,1,quantile, probs=c(alpha/2,1-alpha/2))))
+    pdf_fit <- cbind( rowMeans(resj), t(apply(resj, 1, stats::quantile, probs=c(alpha/2,1-alpha/2))))
     data <- data.frame(pdf_fit, y.grid)
     names(data)[1:3] <- c("mean","low","upp")
     
     pdf.j <- ggplot2::ggplot(data) +  
-      ggplot2::geom_line(aes(x=y.grid, y=mean), col="blue", na.rm=TRUE) +
-      ggplot2::geom_ribbon(aes(ymax=.data$upp, ymin=.data$low, x=y.grid), fill=4, alpha=.1) + 
-      ggplot2::ylim(ylim) +  ggplot2::xlim(xlim)+  labs(x=xlab[j], y="") + 
-      theme(plot.margin=unit(c(1,1,1,1),"lines"), axis.title=element_text(size=6))
+      ggplot2::geom_line(ggplot2::aes(x=y.grid, y=mean), col="blue", na.rm=TRUE) +
+      ggplot2::geom_ribbon(ggplot2::aes(ymax=.data$upp, ymin=.data$low, x=y.grid), fill=4, alpha=.1) + 
+      ggplot2::ylim(ylim) +  ggplot2::xlim(xlim)+  ggplot2::labs(x=xlab[j], y="") + 
+      ggplot2::theme(plot.margin=grid::unit(c(1,1,1,1),"lines"), axis.title=ggplot2::element_text(size=6))
     all.pdf[[j]] <- pdf.j
   }
   all.pdf
@@ -444,6 +453,8 @@ fit.pdf.mcmc <- function(y, x, fit, mcmc, J=10, H=10, alpha=0.05, max.x=max(x), 
 
 #' @rdname betaplot
 #' 
+#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon labs theme_bw ylim xlim geom_point
+#' @importFrom rlang .data
 #' @export 
 #' 
 #' @usage betaplot(x, fit, x.grid = NULL, xlim = c(0, max(x)), xlab = "x")
@@ -468,12 +479,12 @@ betaplot <- function(x, fit, x.grid=NULL, xlim=c(0,max(x)), xlab="x")
   beta.data <- data.frame(beta=fit$post.means$beta,
                           low=fit$ci$beta[1,], upp=fit$ci$beta[2,],
                           x.grid=x.grid)
-  betaplot <- ggplot2::ggplot(beta.data, aes(x.grid,beta)) +
+  betaplot <- ggplot2::ggplot(beta.data, ggplot2::aes(x.grid,beta)) +
     ggplot2::geom_line(lty=1, col=4, na.rm=TRUE) + 
-    ggplot2::geom_ribbon(aes(ymax=.data$upp, ymin=.data$low), fill=4, alpha=.1) +
+    ggplot2::geom_ribbon(ggplot2::aes(ymax=.data$upp, ymin=.data$low), fill=4, alpha=.1) +
     ggplot2::labs(y=expression(beta(x)), x=xlab) + 
     ggplot2::theme_bw() + ggplot2::ylim(c(0,1)) +  ggplot2::xlim(xlim) +
-    ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
+    ggplot2::geom_point(data=data.frame(x, zero=rep(0,length(x))), ggplot2::aes(.data$x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE) 
   betaplot
 }
 
@@ -484,6 +495,7 @@ betaplot <- function(x, fit, x.grid=NULL, xlim=c(0,max(x)), xlab="x")
 
 #' @rdname add.risk
 #' 
+#' @importFrom stats approxfun integrate quantile var
 #' @export  
 #' 
 #' @usage add.risk(y, x, fit, mcmc, a, alpha=0.05, 
@@ -514,7 +526,7 @@ betaplot <- function(x, fit, x.grid=NULL, xlim=c(0,max(x)), xlab="x")
 
 add.risk <- function(y, x, fit, mcmc, a, alpha=0.05, x.grid=NULL, y.grid=NULL)
 {
-  y.grid <- if(is.null(y.grid)) seq(min(y)-sqrt(var(y)), max(y) + sqrt(var(y)), length = 100) else y.grid 
+  y.grid <- if(is.null(y.grid)) seq(min(y)-sqrt(stats::var(y)), max(y) + sqrt(stats::var(y)), length = 100) else y.grid 
   x.grid <- if(is.null(x.grid)) seq(0, max(x), length = 100) else x.grid 
   if(!fit$bin){
     if(is.null(fit$z)){
@@ -524,16 +536,16 @@ add.risk <- function(y, x, fit, mcmc, a, alpha=0.05, x.grid=NULL, y.grid=NULL)
       ite <- 1
       for(i in index)
       {
-        f0 <- approxfun(x=y.grid, y=fit$mcmc$f0[i,])
-        f1 <- approxfun(x=y.grid, y=fit$mcmc$f1[i,])
-        r_a[ite,] <- fit$mcmc$beta[i,]*(integrate(function(x)f1(x), low.int, a)$value-
-                                          integrate(function(x)f0(x), low.int, a)$value )
+        f0 <- stats::approxfun(x=y.grid, y=fit$mcmc$f0[i,])
+        f1 <- stats::approxfun(x=y.grid, y=fit$mcmc$f1[i,])
+        r_a[ite,] <- fit$mcmc$beta[i,]*(stats::integrate(function(x)f1(x), low.int, a)$value-
+                                          stats::integrate(function(x)f0(x), low.int, a)$value )
         
         ite <- ite + 1
       }
       risk.data <- data.frame(apply(r_a,2,mean), 
-                              apply(r_a,2,quantile, probs=alpha/2), 
-                              apply(r_a,2,quantile, probs=1-alpha/2), 
+                              apply(r_a,2, stats::quantile, probs=alpha/2), 
+                              apply(r_a,2, stats::quantile, probs=1-alpha/2), 
                               x.grid)
       colnames(risk.data) <- c("risk","low","upp", "x")
       list(mcmc.risk=r_a, summary.risk= risk.data)
@@ -545,16 +557,16 @@ add.risk <- function(y, x, fit, mcmc, a, alpha=0.05, x.grid=NULL, y.grid=NULL)
         ite <- 1
         for(i in index)
         {
-          f0_a <- approxfun(x=y.grid, y=fit$f0[i,])
-          f1_a <- approxfun(x=y.grid, y=fit$f1[i,])
-          r_a[ite,] <- fit$mcmc$beta[i,]*(integrate(function(x) f1_a(x), low.int, a)$value-
-                                            integrate(function(x) f0_a(x), low.int, a)$value )
+          f0_a <- stats::approxfun(x=y.grid, y=fit$f0[i,])
+          f1_a <- stats::approxfun(x=y.grid, y=fit$f1[i,])
+          r_a[ite,] <- fit$mcmc$beta[i,]*(stats::integrate(function(x) f1_a(x), low.int, a)$value-
+                                            stats::integrate(function(x) f0_a(x), low.int, a)$value )
           
           ite <- ite + 1
         }
         risk.data <- data.frame(apply(r_a,2,mean), 
-                                apply(r_a,2,quantile, probs=alpha/2), 
-                                apply(r_a,2,quantile, probs=1-alpha/2), 
+                                apply(r_a,2, stats::quantile, probs=alpha/2), 
+                                apply(r_a,2, stats::quantile, probs=1-alpha/2), 
                                 x.grid)
         colnames(risk.data) <- c("risk","low","upp", "x")
         list(mcmc.risk=r_a, summary.risk= risk.data)
@@ -567,6 +579,8 @@ add.risk <- function(y, x, fit, mcmc, a, alpha=0.05, x.grid=NULL, y.grid=NULL)
 # -----------------------------------------------------------------------
 #' @rdname riskplot
 #' 
+#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon labs theme_bw theme ylim xlim geom_point
+#' @importFrom grid unit
 #' @export 
 #' 
 #' @usage riskplot(risk.data, xlab = NULL, x = NULL, ylim=c(0,1), xlim=c(0, max(x)))
@@ -583,18 +597,17 @@ add.risk <- function(y, x, fit, mcmc, a, alpha=0.05, x.grid=NULL, y.grid=NULL)
 #' @author Antonio Canale
 #' 
 
-
 riskplot <- function(risk.data, xlab=NULL, x=NULL, ylim=c(0,1), xlim=c(0, max(x)))
 {
   if(is.null(xlab)) xlab <- deparse(substitute(x))
-  out <- ggplot(risk.data, aes(.data$x,.data$risk)) + geom_line(lty=1, col=4, na.rm=TRUE) + 
-    geom_ribbon(aes(ymax=.data$upp, ymin=.data$low), fill=4,alpha=.1) +
-    labs(y=expression(R[A](x, a)), x=xlab)+ theme_bw() + 
-    theme(plot.margin=unit(c(1,1,1,1),"lines")) + ylim(ylim) + xlim(xlim)
+  out <- ggplot2::ggplot(risk.data, ggplot2::aes(.data$x,.data$risk)) + ggplot2::geom_line(lty=1, col=4, na.rm=TRUE) + 
+    ggplot2::geom_ribbon(ggplot2::aes(ymax=.data$upp, ymin=.data$low), fill=4, alpha=.1) +
+    ggplot2::labs(y=expression(R[A](x, a)), x=xlab)+ ggplot2::theme_bw() + 
+    ggplot2::theme(plot.margin=grid::unit(c(1,1,1,1),"lines")) + ggplot2::ylim(ylim) + ggplot2::xlim(xlim)
   if(is.null(x)) return(out)
   else{
     onlyx <- data.frame(x, zero=rep(0,length(x)))
-    out <- out + geom_point(data=onlyx, aes(x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE)
+    out <- out + ggplot2::geom_point(data=onlyx, ggplot2::aes(x, .data$zero), alpha=1, cex=.5, pch="|", na.rm=TRUE)
   }
   return(out)
 }
@@ -604,6 +617,7 @@ riskplot <- function(risk.data, xlab=NULL, x=NULL, ylim=c(0,1), xlim=c(0, max(x)
 # -----------------------------------------------------------------------
 #' @rdname BMD
 #' 
+#' @importFrom stats splinefun uniroot quantile
 #' @export 
 #' 
 #' @usage BMD(level, risk, x, alpha=0.05)
@@ -634,23 +648,23 @@ BMD <- function(level, risk, x, alpha=0.05)
 {
   bmd <- function(r,q,range=c(0,max(x))) 
   {
-    ris <- splinefun(y=r,x=x)
+    ris <- stats::splinefun(y=r,x=x)
     if(ris(range[2])-q<0) return(NA)
     else
-      uniroot(function(x)ris(x)-q,range)$root
+      stats::uniroot(function(x) ris(x)-q,range)$root
   }
   bmd.apply <- function(q) apply(risk, 1, bmd, q=q, range=c(0,180))
   if(length(level)==1){
     bmd.data <- bmd.apply(level)
-    return(c(mean(bmd.data), quantile(bmd.data, probs=c(alpha/2,1-alpha/2,alpha))))
+    return(c(mean(bmd.data), stats::quantile(bmd.data, probs=c(alpha/2,1-alpha/2,alpha))))
   }
   else
   {
     bmd.mcmc.comire <-  sapply(level, bmd.apply)
     bmd.data <- data.frame(level,
                            colMeans(bmd.mcmc.comire, na.rm=TRUE), 
-                           t(apply(bmd.mcmc.comire,2,quantile, prob=c(alpha/2,1-alpha/2), na.rm=TRUE)),
-                           apply(bmd.mcmc.comire,2,quantile, prob=alpha, na.rm=TRUE))
+                           t(apply(bmd.mcmc.comire,2, stats::quantile, prob=c(alpha/2,1-alpha/2), na.rm=TRUE)),
+                           apply(bmd.mcmc.comire,2, stats::quantile, prob=alpha, na.rm=TRUE))
     colnames(bmd.data) <- c("q", "BMD","low","upp", "BMDL")
     return(bmd.data)
   }
@@ -661,6 +675,9 @@ BMD <- function(level, risk, x, alpha=0.05)
 # -----------------------------------------------------------------------
 #' @rdname bmd.plot
 #' 
+#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon labs theme_bw theme
+#' @importFrom rlang .data
+#' @importFrom grid unit
 #' @export 
 #' 
 #' @title Benchmark dose plot
@@ -676,10 +693,10 @@ BMD <- function(level, risk, x, alpha=0.05)
 
 bmd.plot <- function(bmd.data)
 {
-  ggplot(bmd.data, aes(q,BMD)) + 
-    geom_line(aes(q, BMD), lty=1, col=4) + geom_ribbon(aes(ymax=.data$upp, ymin=.data$low), fill=4,alpha=.1) +
-    labs(y=expression(BMD[q]), x="q")+ theme_bw() + 
-    theme(plot.margin=unit(c(1,1,1,1),"lines"))  
+  ggplot2::ggplot(bmd.data, ggplot2::aes(q,BMD)) + 
+    ggplot2::geom_line(ggplot2::aes(q, BMD), lty=1, col=4) + ggplot2::geom_ribbon(ggplot2::aes(ymax=.data$upp, ymin=.data$low), fill=4, alpha=.1) +
+    ggplot2::labs(y=expression(BMD[q]), x="q")+ ggplot2::theme_bw() + 
+    ggplot2::theme(plot.margin=grid::unit(c(1,1,1,1),"lines"))  
 }
 
 

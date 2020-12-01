@@ -2,6 +2,14 @@
 #include "sample.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
+//' @title Labelling c
+//' 
+//' @name labelling_c_C
+//' 
+//' @param y y
+//' @param logpi logpi
+//' @param mu mu
+//' @param tau tau
 // [[Rcpp::export]]
 arma::vec labelling_c_C(arma::vec y, arma::vec logpi, arma::vec mu, arma::vec tau){
   
