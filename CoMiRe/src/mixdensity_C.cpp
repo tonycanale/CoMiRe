@@ -2,15 +2,9 @@
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
-//' @title Mixdensity
-//' 
-//' @name mixdensity_C
-//' 
-//' @param y y
-//' @param pi pi
-//' @param mu mu
-//' @param tau tau
-// [[Rcpp::export]]
+//' @name comire.internal
+//' @keywords internal
+// [[Rcpp::export(.mixdensity_C)]]
 arma::vec mixdensity_C(arma::vec y, arma::vec pi, arma::vec mu, arma::vec tau){
   
   int n = y.n_elem; 

@@ -1,37 +1,37 @@
-#' @name comire.gibbs.continuous.confunder
-#'
-#' @title Gibbs sampler for CoMiRe model with continuous response and one confounder variable.
-#' 
-#' @description Posterior inference via Gibbs sampler for CoMiRe model with continuous response and one confounder variable.
-#' 
-#' @param y numeric vector for the response.
-#' @param x numeric vector for the covariate relative to the dose of exposure.
-#' @param z numeric vector for the confunders; a vector if there is only one confounder or a matrix for two or more confunders.
-#' @param grid a list giving the parameters for plotting the posterior mean density and the posterior mean \eqn{\beta(x)} over finite grids.
-#' @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
-#' @param prior a list containing the values of the hyperparameters. 
-#' It must include the following values: 
-#' \itemize{
-#' \item \code{mu.theta}, the prior mean \eqn{\mu_\theta} for each location parameter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
-#' \item \code{k.theta}, the prior variance \eqn{k_\theta} for each location paramter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
-#' \item \code{mu.gamma} (if \code{p} confounding covariates are included in the model) a \code{p}-dimentional vector of prior means \eqn{\mu_\gamma}{\mu_gamma} of the parameters \eqn{\gamma} corresponding to the confounders,
-#' \item \code{k.gamma}, the prior variance \eqn{k_\gamma}{k_gamma} for parameter corresponding to the confounding covariate (if \code{p=1}) or \code{sigma.gamma} (if \code{p>1}), that is the covariance matrix \eqn{\Sigma_\gamma}{\Sigma_gamma} for the parameters corresponding to the \code{p} confounding covariates; this must be a symmetric positive definite matrix.
-#' \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
-#' \item \code{alpha}, prior for the mixture weights,
-#' \item \code{a} and \code{b}, prior scale and shape parameter for the gamma distribution of each precision parameter, 
-#' \item \code{J}, parameter controlling the number of elements of the I-spline basis,
-#' \item \code{H}, total number of components in the mixture at \eqn{x_0}.
-#' }
-#' @param state if \code{family="continuous"}, a list giving the current value of the parameters. This list is used if the current analysis is the continuation of a previous analysis or if we want to start the MCMC algorithm from some particular value of the parameters.
-#' @param seed seed for random initialization.
-#' @param max.x maximum value allowed for \code{x}.
-#' @param z.val optional numeric vector containing a fixed value of interest for each of the confounding covariates to be used for the plots. Default value is \code{mean(z)} for numeric covariates or the mode for factorial covariates.
-#' @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
-#'
+# @name comire.gibbs.continuous.confunder
+#
+# @title Gibbs sampler for CoMiRe model with continuous response and one confounder variable.
+# 
+# @description Posterior inference via Gibbs sampler for CoMiRe model with continuous response and one confounder variable.
+# 
+# @param y numeric vector for the response.
+# @param x numeric vector for the covariate relative to the dose of exposure.
+# @param z numeric vector for the confunders; a vector if there is only one confounder or a matrix for two or more confunders.
+# @param grid a list giving the parameters for plotting the posterior mean density and the posterior mean \eqn{\beta(x)} over finite grids.
+# @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
+# @param prior a list containing the values of the hyperparameters. 
+# It must include the following values: 
+# \itemize{
+# \item \code{mu.theta}, the prior mean \eqn{\mu_\theta} for each location parameter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
+# \item \code{k.theta}, the prior variance \eqn{k_\theta} for each location paramter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
+# \item \code{mu.gamma} (if \code{p} confounding covariates are included in the model) a \code{p}-dimentional vector of prior means \eqn{\mu_\gamma}{\mu_gamma} of the parameters \eqn{\gamma} corresponding to the confounders,
+# \item \code{k.gamma}, the prior variance \eqn{k_\gamma}{k_gamma} for parameter corresponding to the confounding covariate (if \code{p=1}) or \code{sigma.gamma} (if \code{p>1}), that is the covariance matrix \eqn{\Sigma_\gamma}{\Sigma_gamma} for the parameters corresponding to the \code{p} confounding covariates; this must be a symmetric positive definite matrix.
+# \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
+# \item \code{alpha}, prior for the mixture weights,
+# \item \code{a} and \code{b}, prior scale and shape parameter for the gamma distribution of each precision parameter, 
+# \item \code{J}, parameter controlling the number of elements of the I-spline basis,
+# \item \code{H}, total number of components in the mixture at \eqn{x_0}.
+# }
+# @param state if \code{family="continuous"}, a list giving the current value of the parameters. This list is used if the current analysis is the continuation of a previous analysis or if we want to start the MCMC algorithm from some particular value of the parameters.
+# @param seed seed for random initialization.
+# @param max.x maximum value allowed for \code{x}.
+# @param z.val optional numeric vector containing a fixed value of interest for each of the confounding covariates to be used for the plots. Default value is \code{mean(z)} for numeric covariates or the mode for factorial covariates.
+# @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
+#
 #' @importFrom stats rgamma dnorm
 #' @importFrom truncnorm rtruncnorm 
 
-comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, state=NULL, seed, 
+.comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, state=NULL, seed, 
                              max.x=ceiling(max(x)), z.val=NULL, verbose = TRUE){
   
     if(is.null(z.val)){
@@ -111,7 +111,7 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
     beta_i <- as.double(phiX %*% w[1, ])
     
     ## f0i and f1i
-    f0i <- sapply(1:n, mixdensity_uni, y=y, z=z, nu=nu0[1,], theta=th0[1,], tau=tau0[1,], ga=ga[1])
+    f0i <- sapply(1:n, .mixdensity_uni, y=y, z=z, nu=nu0[1,], theta=th0[1,], tau=tau0[1,], ga=ga[1])
     f1i <- stats::dnorm(y, (th1[1]+z*ga[1]) , sqrt(1/tau1[1]))
     
     # start the MCMC simulation 
@@ -130,12 +130,12 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
       d = rbinom(n, 1, prob=(beta_i*f1i)/((1-beta_i)*f0i + beta_i*f1i))
       
       # 2. Update b_i from the multinomial 
-      b = sapply(1:n, labelling_b_uni, w[ite-1,], phi=phiX, f0i=f0i, f1i=f1i)
+      b = sapply(1:n, .labelling_b_uni, w[ite-1,], phi=phiX, f0i=f0i, f1i=f1i)
       
       # 3. Update c_i, marginalizing over b_i and d_i, from the multinomial 
       ind0 <- c(1:n)[d==0]
       ind1 <- c(1:n)[d==1]
-      c <- sapply(ind0, labelling_c_uni, y=y, z=z, nu=nu0[ite-1,], theta=th0[ite-1,], tau=tau0[ite-1,], ga=ga[ite-1])
+      c <- sapply(ind0, .labelling_c_uni, y=y, z=z, nu=nu0[ite-1,], theta=th0[ite-1,], tau=tau0[ite-1,], ga=ga[ite-1])
       
       # 4. Update the mixture weights sampling from Dirichlet
       n_h <- table(factor(c, levels=1:H))
@@ -156,7 +156,7 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
       z_mean_0h <- tapply(z[ind0], factor(c, levels=1:H), mean); z_mean_0h[is.na(z_mean_0h)]<- 0
       z_mean_1h <- mean(z[ind1]); z_mean_1h[is.na(z_mean_1h)]<- 0
       
-      zy_sum_0h <- sapply(1:H, psdp_uni, y=y[ind0], z=z[ind0], cluster=c)
+      zy_sum_0h <- sapply(1:H, .psdp_uni, y=y[ind0], z=z[ind0], cluster=c)
       zy_sum_1h <- sum(y[ind1]*z[ind1])
       
       z2_0h <- tapply(z[ind0], factor(c, levels=1:H), function(x) sum(x^2)); z2_0h[is.na(z2_0h)]<- 0
@@ -175,7 +175,7 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
       ## in cluster 0: m=0
       hat_a <- prior$a + n_0h/2
       y_mean_0h <- tapply(y[ind0], factor(c, levels=1:H), mean); y_mean_0h[n_0h==0]  = 0
-      deviance_0h <- sapply(1:H, pssq_uni, y=y[ind0], z=z[ind0], cluster=c, theta=th0[ite-1,], gamma=ga[ite] )
+      deviance_0h <- sapply(1:H, .pssq_uni, y=y[ind0], z=z[ind0], cluster=c, theta=th0[ite-1,], gamma=ga[ite] )
       hat_b <- prior$b + 0.5*(deviance_0h)
       tau0[ite, ] <- stats::rgamma(H, hat_a, hat_b)
       
@@ -196,13 +196,13 @@ comire.gibbs.continuous.confunder <-function(y, x, z, grid=NULL, mcmc, prior, st
       th1[ite] <- truncnorm::rtruncnorm(1, a=-Inf, b=min(th0[ite, ]), hat_mu, sqrt(hat_kappa))
 
       # update the values of the densities in the observed points
-      f0i <- sapply(1:n, mixdensity_uni, y=y, z=z, nu=nu0[ite,], theta=th0[ite,], 
+      f0i <- sapply(1:n, .mixdensity_uni, y=y, z=z, nu=nu0[ite,], theta=th0[ite,], 
                    tau=tau0[ite,], ga=ga[ite])
       f1i <- stats::dnorm(y, (th1[ite]+z*ga[ite]), sqrt(1/tau1[ite]))
       
       # 7. compute some posterior quantities of interest
       beta_x[ite, ] <- phi.grid %*% w[ite, ]
-      f0[ite,] <- sapply(1:length(y.grid), mixdensity_uni, y=y.grid, z=rep(z.val,length(y.grid)), nu=nu0[ite,], theta=th0[ite,], tau=tau0[ite,], ga=ga[ite])
+      f0[ite,] <- sapply(1:length(y.grid), .mixdensity_uni, y=y.grid, z=rep(z.val,length(y.grid)), nu=nu0[ite,], theta=th0[ite,], tau=tau0[ite,], ga=ga[ite])
       f1[ite,] <- stats::dnorm(y.grid, (th1[ite]+rep(z.val,length(y.grid))*ga[ite]) , sqrt(1/tau1[ite]))
 
       

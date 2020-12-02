@@ -2,15 +2,9 @@
 #include "sample.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
-//' @title Labelling b 
-//' 
-//' @name labelling_b_C
-//' 
-//' @param w w
-//' @param phi phi
-//' @param f0i f0i
-//' @param f1i f1i
-// [[Rcpp::export]]
+//' @name comire.internal
+//' @keywords internal
+// [[Rcpp::export(.labelling_b_C)]]
 arma::vec labelling_b_C(arma::vec w, arma::mat phi, arma::vec f0i, arma::vec f1i){
   int n = f0i.n_elem;
   int J = phi.n_cols;

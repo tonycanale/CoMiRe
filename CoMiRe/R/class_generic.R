@@ -82,7 +82,7 @@ predict_new_z <- function(fit, y, z.val){
     f0 = matrix(NA, fit$nrep+fit$nb , length(y.grid))
     f1 = matrix(NA, fit$nrep+fit$nb , length(y.grid))
     for(ite in 2:(fit$nrep+fit$nb)){
-      f0[ite,] <- sapply(1:length(y.grid), mixdensity_uni, y=y.grid, z=rep(z.val,length(y.grid)), nu=fit$mcmc$nu0[ite,], theta=fit$mcmc$th0[ite,], tau=fit$mcmc$tau0[ite,], ga=fit$mcmc$ga[ite])
+      f0[ite,] <- sapply(1:length(y.grid), .mixdensity_uni, y=y.grid, z=rep(z.val,length(y.grid)), nu=fit$mcmc$nu0[ite,], theta=fit$mcmc$th0[ite,], tau=fit$mcmc$tau0[ite,], ga=fit$mcmc$ga[ite])
       f1[ite,] <- stats::dnorm(y.grid, (fit$mcmc$th1[ite]+rep(z.val,length(y.grid))*fit$mcmc$ga[ite]) , sqrt(1/fit$mcmc$tau1[ite]))
     }
     as.classCoMiRe(
@@ -103,7 +103,7 @@ predict_new_z <- function(fit, y, z.val){
     f0 = matrix(NA, fit$nrep+fit$nb, length(y.grid))
     f1 = matrix(NA, fit$nrep+fit$nb, length(y.grid))
     for(ite in 2:(fit$nrep+fit$nb)){
-      f0[ite,] <- sapply(1:length(y.grid), mixdensity_multi, y=y.grid, z=z_val, 
+      f0[ite,] <- sapply(1:length(y.grid), .mixdensity_multi, y=y.grid, z=z_val, 
                          nu=fit$mcmc$nu0[ite,], theta=fit$mcmc$th0[ite,], 
                          tau=fit$mcmc$tau0[ite,], ga=fit$mcmc$ga[ite,])
       f1[ite,] <- stats::dnorm(y.grid,(fit$mcmc$th1[ite]+z_val%*%fit$mcmc$ga[ite,]) , sqrt(1/fit$mcmc$tau1[ite]))

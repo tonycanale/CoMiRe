@@ -1,28 +1,28 @@
-#' @name comire.gibbs.binary
-#'
-#' @title Gibbs sampler for CoMiRe model with binary response 
-#' 
-#' @description Posterior inference via Gibbs sampler for CoMiRe model with binary response
-#' 
-#' @param y numeric vector for the response.
-#' @param x numeric vector for the covariate relative to the dose of exposure.
-#' @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
-#' @param prior a list containing the values of the hyperparameters. 
-#' It must include the following values: 
-#' \itemize{
-#' \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
-#' \item \code{a.pi0} and \code{b.pi0}, the prior parameters of the prior beta distribution for \eqn{\pi_0},
-#' \item \code{J}, parameter controlling the number of elements of the Ispline basis.
-#' }
-#' @param seed seed for random initialization.
-#' @param max.x maximum value allowed for \code{x}.
-#' @param min.x minimum value allowed for \code{x}.
-#' @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
-#' 
+# @name comire.gibbs.binary
+#
+# @title Gibbs sampler for CoMiRe model with binary response 
+# 
+# @description Posterior inference via Gibbs sampler for CoMiRe model with binary response
+# 
+# @param y numeric vector for the response.
+# @param x numeric vector for the covariate relative to the dose of exposure.
+# @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
+# @param prior a list containing the values of the hyperparameters. 
+# It must include the following values: 
+# \itemize{
+# \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
+# \item \code{a.pi0} and \code{b.pi0}, the prior parameters of the prior beta distribution for \eqn{\pi_0},
+# \item \code{J}, parameter controlling the number of elements of the Ispline basis.
+# }
+# @param seed seed for random initialization.
+# @param max.x maximum value allowed for \code{x}.
+# @param min.x minimum value allowed for \code{x}.
+# @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
+# 
 #' @importFrom stats dbinom rbeta
 #' @importFrom gtools rdirichlet
 
-comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min(x), verbose = TRUE){
+.comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min(x), verbose = TRUE){
   # prior: eta, a.pi0, b.pi0, J
   
   # internal working variables
@@ -76,7 +76,7 @@ comire.gibbs.binary <- function(y, x, mcmc, prior, seed, max.x=max(x), min.x=min
     d <- rbinom(n, 1, prob=(beta_i*P1)/((1-beta_i)*P0 + beta_i*P1))
     
     # 2. Update b_i from the multinomial 
-    b <- labelling_bb_C(w=w[ite-1,], phi=phiX, P0=P0, P1=P1)
+    b <- .labelling_bb_C(w=w[ite-1,], phi=phiX, P0=P0, P1=P1)
       #sapply(1:n, labelling_b, w[ite-1, ], phi=phiX, P0=P0, P1=P1)
 
     # 3. Update w from the Dirichlet and obtain an updated function beta_i

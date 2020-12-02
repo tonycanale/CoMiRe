@@ -2,12 +2,8 @@
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
-//' @title Sample
-//' 
-//' @name sample
-//' 
-//' @param vals vals
-//' @param probs probs
+//' @name comire.internal
+//' @keywords internal
 int sample(arma::vec vals, arma::vec probs){
   double u = arma::randu();
   probs = arma::cumsum(probs);

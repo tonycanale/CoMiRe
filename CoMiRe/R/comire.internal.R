@@ -1,35 +1,20 @@
-#' Internal functions of the package
-#' @name comire.internal
-#' 
-#' 
-#' @keywords internal
-#'
-
 
 #-----------------
 #Internal functions comire.continuous
 
-#' pssq_gaussian 
+#' @name comire.internal
+#' @title Internal Functions of CoMiRe package
+#' @keywords internal
 #' 
-#' @param index index
-#' @param data data
-#' @param cluster cluster
-#' @param locations locations
-#' 
-pssq_gaussian <- function(index, data, cluster, locations) sum((data[cluster==index] - locations[index])^2)
+.pssq_gaussian <- function(index, data, cluster, locations) sum((data[cluster==index] - locations[index])^2)
 
 #-----------------
 #Internal functions comire continuous with confounders
 
-#' labelling_b_uni 
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param i i
-#' @param w w
-#' @param phi phi
-#' @param f0i f0i
-#' @param f1i f1i
-#' 
-labelling_b_uni <- function(i, w, phi, f0i, f1i)
+.labelling_b_uni <- function(i, w, phi, f0i, f1i)
 {
   probs <- w*((1-phi[i,])*f0i[i] + phi[i,]*f1i[i])
   if(any(probs<0)) probs[probs<0]=0
@@ -38,17 +23,10 @@ labelling_b_uni <- function(i, w, phi, f0i, f1i)
 
 #
 
-#' labelling_c_uni 
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param i i
-#' @param y y
-#' @param z z
-#' @param nu nu
-#' @param theta theta
-#' @param tau tau
-#' @param ga ga
-#' 
-labelling_c_uni <- function(i, y, z, nu, theta, tau, ga)
+.labelling_c_uni <- function(i, y, z, nu, theta, tau, ga)
 {
   probs <- nu*stats::dnorm(y[i], theta+z[i]*ga , sqrt(1/tau))
   if(any(probs<0)) probs[probs<0]=0
@@ -57,17 +35,10 @@ labelling_c_uni <- function(i, y, z, nu, theta, tau, ga)
 
 #
 
-#' mixdensity_uni 
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param i i
-#' @param y y
-#' @param z z
-#' @param nu nu
-#' @param theta theta
-#' @param tau tau
-#' @param ga ga
-#' 
-mixdensity_uni <- function(i, y, z, nu, theta, tau, ga)
+.mixdensity_uni <- function(i, y, z, nu, theta, tau, ga)
 {
   kernels <- stats::dnorm(y[i], (theta+z[i]*ga) , sqrt(1/tau))
   fji <- sum(nu * kernels)
@@ -76,43 +47,28 @@ mixdensity_uni <- function(i, y, z, nu, theta, tau, ga)
 
 #
 
-#' pssq_uni 
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param index index
-#' @param y y
-#' @param z z
-#' @param cluster cluster
-#' @param theta theta
-#' @param gamma gamma
-#' 
-pssq_uni <- function(index, y, z, cluster, theta, gamma) {
+.pssq_uni <- function(index, y, z, cluster, theta, gamma) {
   sum((y[cluster==index] - 
          (theta[index]+z[cluster==index]*gamma))^2)}
 
 #
 
-#' psdp_uni (posterior double product)
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param index index
-#' @param y y
-#' @param z z
-#' @param cluster cluster
-#'
-psdp_uni <- function(index, y, z, cluster){
+.psdp_uni <- function(index, y, z, cluster){
   sum(y[cluster==index]*z[cluster==index])
 }
 
 #
 
-#' labelling_b_multi
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param i i
-#' @param w w
-#' @param phi phi
-#' @param f0i f0i
-#' @param f1i f1i
-#'
-labelling_b_multi <- function(i, w, phi, f0i, f1i)
+.labelling_b_multi <- function(i, w, phi, f0i, f1i)
 {
   probs <- w*((1-phi[i,])*f0i[i] + phi[i,]*f1i[i])
   if(any(probs<0)) probs[probs<0]=0
@@ -121,17 +77,10 @@ labelling_b_multi <- function(i, w, phi, f0i, f1i)
 
 #
 
-#' labelling_c_multi
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param i i
-#' @param y y
-#' @param z z
-#' @param nu nu
-#' @param theta theta
-#' @param tau tau
-#' @param ga ga
-#'
-labelling_c_multi <- function(i, y, z, nu, theta, tau, ga)
+.labelling_c_multi <- function(i, y, z, nu, theta, tau, ga)
 {
   probs <- nu*stats::dnorm(y[i], theta+as.vector(crossprod(z[i,],ga)) , sqrt(1/tau))
   if(any(probs<0)) probs[probs<0]=0
@@ -140,17 +89,10 @@ labelling_c_multi <- function(i, y, z, nu, theta, tau, ga)
 
 #
 
-#' mixdensity_multi
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param i i
-#' @param y y
-#' @param z z
-#' @param nu nu
-#' @param theta theta
-#' @param tau tau
-#' @param ga ga
-#'
-mixdensity_multi <- function(i, y, z, nu, theta, tau, ga) 
+.mixdensity_multi <- function(i, y, z, nu, theta, tau, ga) 
 {
   kernels <- stats::dnorm(y[i], theta+as.vector(crossprod(z[i,],ga)) , sqrt(1/tau))
   fji <- sum(nu * kernels)
@@ -159,15 +101,10 @@ mixdensity_multi <- function(i, y, z, nu, theta, tau, ga)
 
 #
 
-#' pssq_multi
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param y y
-#' @param z z
-#' @param times times
-#' @param gamma gamma
-#' @param theta theta
-#'
-pssq_multi <- function(y,times,z,gamma,theta){
+.pssq_multi <- function(y,times,z,gamma,theta){
   H <- length(theta)
   sapply(1:H, function(x) 
     crossprod( y-(theta[x]*rep(1,times)+crossprod(t(z),gamma)) ))
@@ -175,14 +112,10 @@ pssq_multi <- function(y,times,z,gamma,theta){
 
 #
 
-#' psdp_multi
+#' @name comire.internal
+#' @keywords internal
 #' 
-#' @param index index
-#' @param y y
-#' @param z z
-#' @param cluster cluster
-#'
-psdp_multi <- function(index, y, z, cluster){
+.psdp_multi <- function(index, y, z, cluster){
   sum(y[cluster==index]*z[cluster==index])
 }
 
