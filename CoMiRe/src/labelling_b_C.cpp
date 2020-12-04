@@ -26,4 +26,3 @@ arma::vec labelling_b_C(arma::vec w, arma::mat phi, arma::vec f0i, arma::vec f1i
   }
   return b;
 }
-
