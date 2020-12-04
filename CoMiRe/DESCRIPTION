@@ -1,7 +1,7 @@
 Package: CoMiRe
 Type: Package
 Title: Convex Mixture Regression
-Version: 0.6
+Version: 0.7
 Date: 2020-11-24
 Author: Antonio Canale [aut, cre], Daniele Durante [ctb], Arianna Falcioni [aut], Luisa Galtarossa [aut], Tommaso Rigon [ctb]
 Maintainer: Antonio Canale <canale@stat.unipd.it>
