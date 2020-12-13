@@ -25,6 +25,7 @@
 .Rproj.user/
 .Rproj
 .Rprofile
+.DS_Store
 
 # produced vignettes
 vignettes/*.html
@@ -42,16 +43,19 @@ vignettes/*.pdf
 *.knit.md
 *.Rmd
 
+Tutorial_old.*
+
 # R Environment Variables
 .Renviron
 .Rproj.user
 
 
 # renv
-/renv/library
-/renv/staging
+renv/library
+renv/staging
 renv/
 renv.lock
+*.lock
 
 # mergetool
 *.orig
