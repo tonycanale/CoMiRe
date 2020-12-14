@@ -1,4 +1,35 @@
-comire.gibbs.continuous <-
+# @name comire.gibbs.continuous
+#
+# @title Gibbs sampler for CoMiRe model with continuous response.
+# 
+# @description Posterior inference via Gibbs sampler for CoMiRe model with continuous response.
+# 
+# @param y numeric vector for the response.
+# @param x numeric vector for the covariate relative to the dose of exposure.
+# @param grid a list giving the parameters for plotting the posterior mean density and the posterior mean \eqn{\beta(x)} over finite grids.
+# @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
+# @param prior a list containing the values of the hyperparameters. 
+# It must include the following values: 
+# \itemize{
+# \item \code{mu.theta}, the prior mean \eqn{\mu_\theta} for each location parameter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
+# \item \code{k.theta}, the prior variance \eqn{k_\theta} for each location paramter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
+# \item \code{mu.gamma} (if \code{p} confounding covariates are included in the model) a \code{p}-dimentional vector of prior means \eqn{\mu_\gamma}{\mu_gamma} of the parameters \eqn{\gamma} corresponding to the confounders,
+# \item \code{k.gamma}, the prior variance \eqn{k_\gamma}{k_gamma} for parameter corresponding to the confounding covariate (if \code{p=1}) or \code{sigma.gamma} (if \code{p>1}), that is the covariance matrix \eqn{\Sigma_\gamma}{\Sigma_gamma} for the parameters corresponding to the \code{p} confounding covariates; this must be a symmetric positive definite matrix.
+# \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
+# \item \code{alpha}, prior for the mixture weights,
+# \item \code{a} and \code{b}, prior scale and shape parameter for the gamma distribution of each precision parameter, 
+# \item \code{J}, parameter controlling the number of elements of the I-spline basis,
+# \item \code{H}, total number of components in the mixture at \eqn{x_0}.
+# }
+# @param state if \code{family="continuous"}, a list giving the current value of the parameters. This list is used if the current analysis is the continuation of a previous analysis or if we want to start the MCMC algorithm from some particular value of the parameters.
+# @param seed seed for random initialization.
+# @param max.x maximum value allowed for \code{x}.
+# @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
+# 
+#' @importFrom stats rgamma dnorm rnorm
+#' @importFrom truncnorm rtruncnorm
+
+.comire.gibbs.continuous <-
   function(y, x, grid=NULL, mcmc, prior, state=NULL, seed, max.x=max(x), verbose = TRUE){
     # prior: mu.theta, k.theta, eta(Jx1), alpha(Hx1), a, b, H, J)
 
@@ -22,10 +53,10 @@ comire.gibbs.continuous <-
       set.seed(seed)
       nu0[1,] <- rep(1/H, H)
       nu1[1] <- 1
-      tau0[1,] <- rgamma(H, prior$a, prior$b)
-      th0[1,] <- rnorm(H, prior$mu.theta, sqrt(prior$k.theta))
-      tau1[1] <- rgamma(1, prior$a, prior$b)
-      th1[1] <- rtruncnorm(1, a=-Inf, b=min(th0[1,]), prior$mu.theta, sqrt(prior$k.theta))
+      tau0[1,] <- stats::rgamma(H, prior$a, prior$b)
+      th0[1,] <- stats::rnorm(H, prior$mu.theta, sqrt(prior$k.theta))
+      tau1[1] <- stats::rgamma(1, prior$a, prior$b)
+      th1[1] <- truncnorm::rtruncnorm(1, a=-Inf, b=min(th0[1,]), prior$mu.theta, sqrt(prior$k.theta))
       w[1,] <- prior$eta/sum(prior$eta) # ?
     }
     else
@@ -68,9 +99,9 @@ comire.gibbs.continuous <-
     beta_i =  as.double(phiX %*% w[1, ])
 
     ## f0i and f1i
-    f0i = mixdensity_C(y=y, pi=nu0[1,], mu=th0[1,], tau=tau0[1,])
+    f0i = .mixdensity_C(y=y, pi=nu0[1,], mu=th0[1,], tau=tau0[1,])
     #sapply(1:n, mixdensity, y=y, nu=nu0[1,], mu=th0[1,], tau=tau0[1,])
-    f1i = dnorm(y, th1[1], sqrt(1/tau1[1]))
+    f1i = stats::dnorm(y, th1[1], sqrt(1/tau1[1]))
 
     # start the MCMC simulation
     set.seed(seed)
@@ -88,12 +119,12 @@ comire.gibbs.continuous <-
       d <- rbinom(n, 1, prob=(beta_i*f1i)/((1-beta_i)*f0i + beta_i*f1i))
 
       # 2. Update b_i from the multinomial
-      b <- labelling_b_C(w=w[ite-1,], phi=phiX, f0i=f0i, f1i=f1i)
+      b <- .labelling_b_C(w=w[ite-1,], phi=phiX, f0i=f0i, f1i=f1i)
       
       # 3. Update c_i, marginalizing over b_i and d_i, from the multinomial
       ind0 <- c(1:n)[d==0]
       ind1 <- c(1:n)[d==1]
-      c0 <- labelling_c_C(y=y[ind0], logpi=log(nu0[ite-1,]), mu=th0[ite-1,], tau=tau0[ite-1,])
+      c0 <- .labelling_c_C(y=y[ind0], logpi=log(nu0[ite-1,]), mu=th0[ite-1,], tau=tau0[ite-1,])
       
       # 4. Update the mixture weights sampling from dirichlet
       n_0h <- table(factor(c0, levels=1:H))
@@ -114,12 +145,12 @@ comire.gibbs.continuous <-
       hat_a <- prior$a + n_h/2
       mean_h <- tapply(y[ind0], factor(c0, levels=1:H), mean)
       mean_h[n_h==0]  <- 0
-      deviance_h <- sapply(1:H, pssq_gaussian, data=y[ind0], cluster = c0, locations = th0[ite-1,])
+      deviance_h <- sapply(1:H, .pssq_gaussian, data=y[ind0], cluster = c0, locations = th0[ite-1,])
       hat_b <- prior$b + 0.5*(deviance_h)
-      tau0[ite, ] <- rgamma(H, hat_a, hat_b)
+      tau0[ite, ] <- stats::rgamma(H, hat_a, hat_b)
       hat_k.theta <- 1/(1/prior$k.theta + n_h*tau0[ite,])
       hat_mu <- hat_k.theta*(1/prior$k.theta*prior$mu.theta + n_h*mean_h*tau0[ite, ])
-      th0[ite, ] <- rtruncnorm(H, a=th1[ite-1], b=Inf, hat_mu, sqrt(hat_k.theta))
+      th0[ite, ] <- truncnorm::rtruncnorm(H, a=th1[ite-1], b=Inf, hat_mu, sqrt(hat_k.theta))
 
       ## in cluster 1
       n_h <- sum(d==1)
@@ -128,21 +159,21 @@ comire.gibbs.continuous <-
       mean_h[n_h==0] <- 0
       deviance_h <- sum((y[ind1] -  th1[ite-1])^2)
       hat_b <- prior$b + 0.5*(deviance_h)
-      tau1[ite] <- rgamma(1, hat_a, hat_b)
+      tau1[ite] <- stats::rgamma(1, hat_a, hat_b)
       hat_k.theta <- 1/(1/prior$k.theta + n_h*tau1[ite])
       hat_mu <- hat_k.theta*(1/prior$k.theta*prior$mu.theta + n_h*mean_h*tau1[ite])
-      th1[ite] <- rtruncnorm(1, a=-Inf, b=min(th0[ite, ]), hat_mu, sqrt(hat_k.theta))
+      th1[ite] <- truncnorm::rtruncnorm(1, a=-Inf, b=min(th0[ite, ]), hat_mu, sqrt(hat_k.theta))
 
       # update the values of the densities in the observed points
-      f0i <- mixdensity_C(y=y, pi=nu0[ite,], mu=th0[ite,], tau=tau0[ite,])
+      f0i <- .mixdensity_C(y=y, pi=nu0[ite,], mu=th0[ite,], tau=tau0[ite,])
       #sapply(1:n, mixdensity, y=y, nu=nu0[ite,], mu=th0[ite,], tau=tau0[ite,])
-      f1i <- dnorm(y, th1[ite], sqrt(1/tau1[ite]))
+      f1i <- stats::dnorm(y, th1[ite], sqrt(1/tau1[ite]))
 
       # 7. compute some posterior quanties of interest
       beta_x[ite, ] <- phi.grid %*% w[ite, ]
-      f0[ite, ] <- mixdensity_C(y=y.grid, pi=nu0[ite,], mu=th0[ite,], tau=tau0[ite,])
+      f0[ite, ] <- .mixdensity_C(y=y.grid, pi=nu0[ite,], mu=th0[ite,], tau=tau0[ite,])
       #sapply(1:length(y.grid), mixdensity, y=y.grid, nu=nu0[ite,], mu=th0[ite,], tau=tau0[ite,])
-      f1[ite, ] <- dnorm(y.grid, th1[ite], sqrt(1/tau1[ite]))
+      f1[ite, ] <- stats::dnorm(y.grid, th1[ite], sqrt(1/tau1[ite]))
 
     }
     post.mean.beta <- colMeans(beta_x[-c(1:mcmc$nb),])

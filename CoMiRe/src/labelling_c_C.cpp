@@ -2,7 +2,9 @@
 #include "sample.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
-// [[Rcpp::export]]
+//' @name comire.internal
+//' @keywords internal
+// [[Rcpp::export(.labelling_c_C)]]
 arma::vec labelling_c_C(arma::vec y, arma::vec logpi, arma::vec mu, arma::vec tau){
   
   int n0 = y.n_elem; 

@@ -2,7 +2,9 @@
 #include "sample.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
-// [[Rcpp::export]]
+//' @name comire.internal
+//' @keywords internal
+// [[Rcpp::export(.labelling_b_C)]]
 arma::vec labelling_b_C(arma::vec w, arma::mat phi, arma::vec f0i, arma::vec f1i){
   int n = f0i.n_elem;
   int J = phi.n_cols;
@@ -24,4 +26,3 @@ arma::vec labelling_b_C(arma::vec w, arma::mat phi, arma::vec f0i, arma::vec f1i
   }
   return b;
 }
-

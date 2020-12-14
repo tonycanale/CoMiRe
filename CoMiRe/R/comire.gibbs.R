@@ -192,7 +192,7 @@ comire.gibbs<- function(y, x, z = NULL, family = 'continuous',
       if(verbose)cat("CoMiRe model fit via Gibbs Sampler\n")
       if(verbose)cat("Family: binary\n")
       call <- paste(c(deparse(substitute(y)), " ~ . | beta(", deparse(substitute(x)), ")"), collapse="")  
-      res <- comire.gibbs.binary(y, x, mcmc, prior, seed, max.x=max(x), verbose = verbose)
+      res <- .comire.gibbs.binary(y, x, mcmc, prior, seed, max.x=max(x), verbose = verbose)
       as.classCoMiRe(call= call, out = res, nrep= mcmc$nrep, nb= mcmc$nb, bin = TRUE)
     }
 
@@ -201,7 +201,7 @@ comire.gibbs<- function(y, x, z = NULL, family = 'continuous',
       if(verbose)cat("Family: continuous\n")
       call <- paste(c(deparse(substitute(y)), " ~ . | beta(", 
                       deparse(substitute(x)), ")"), collapse="")  
-      res <- comire.gibbs.continuous(y, x, grid=grid, mcmc, prior, state=state, 
+      res <- .comire.gibbs.continuous(y, x, grid=grid, mcmc, prior, state=state, 
                                      seed, max.x=max(x), verbose = verbose)
       as.classCoMiRe(call= call, out = res, nrep= mcmc$nrep, nb= mcmc$nb)
     }
@@ -212,7 +212,7 @@ comire.gibbs<- function(y, x, z = NULL, family = 'continuous',
       call <- paste(c(deparse(substitute(y)), " ~ ", 
                       deparse(substitute(z)), " | beta(", 
                       deparse(substitute(x)), ")"), collapse="")  
-      res <- comire.gibbs.continuous.confunder(y, x, z, grid=grid, mcmc, prior, 
+      res <- .comire.gibbs.continuous.confunder(y, x, z, grid=grid, mcmc, prior, 
                                                state=state, seed, max.x=max(x),
                                                z.val=z.val, verbose = verbose)
       as.classCoMiRe(call= call, out = res$out,  z = z, z.val = res$z.val, 
@@ -225,7 +225,7 @@ comire.gibbs<- function(y, x, z = NULL, family = 'continuous',
       call <- paste(c(deparse(substitute(y)), " ~ ",
                       paste(attr(z, "dimnames")[[2]], collapse =" + "), 
                       " | beta(", deparse(substitute(x)), ")"), collapse="")
-      res <- comire.gibbs.continuous.confunders(y, x, z, grid=grid, mcmc, prior, 
+      res <- .comire.gibbs.continuous.confunders(y, x, z, grid=grid, mcmc, prior, 
                                                 state=state, seed, max.x=max(x), 
                                                 z.val=z.val, verbose = verbose)
       as.classCoMiRe(call = call, out = res$out, z = z, z.val = res$z.val, 

@@ -1,7 +1,40 @@
-comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior, 
+# @name comire.gibbs.continuous.confunders
+#
+# @title Gibbs sampler for CoMiRe model with continuous response and more than one confounder variable.
+# 
+# @description Posterior inference via Gibbs sampler for CoMiRe model with continuous response and more than one confounder variable.
+# 
+# @param y numeric vector for the response.
+# @param x numeric vector for the covariate relative to the dose of exposure.
+# @param z numeric vector for the confunders; a vector if there is only one confounder or a matrix for two or more confunders.
+# @param grid a list giving the parameters for plotting the posterior mean density and the posterior mean \eqn{\beta(x)} over finite grids.
+# @param mcmc a list giving the MCMC parameters. It must include the following integers: \code{nb} giving the number of burn-in iterations, \code{nrep} giving the total number of iterations, \code{thin} giving the thinning interval, \code{ndisplay} giving the multiple of iterations to be displayed on screen while the algorithm is running (a message will be printed every \code{ndisplay} iterations).
+# @param prior a list containing the values of the hyperparameters. 
+# It must include the following values: 
+# \itemize{
+# \item \code{mu.theta}, the prior mean \eqn{\mu_\theta} for each location parameter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
+# \item \code{k.theta}, the prior variance \eqn{k_\theta} for each location paramter \eqn{\theta_{0h}}{\theta_0h} and \eqn{\theta_1}, 
+# \item \code{mu.gamma} (if \code{p} confounding covariates are included in the model) a \code{p}-dimentional vector of prior means \eqn{\mu_\gamma}{\mu_gamma} of the parameters \eqn{\gamma} corresponding to the confounders,
+# \item \code{k.gamma}, the prior variance \eqn{k_\gamma}{k_gamma} for parameter corresponding to the confounding covariate (if \code{p=1}) or \code{sigma.gamma} (if \code{p>1}), that is the covariance matrix \eqn{\Sigma_\gamma}{\Sigma_gamma} for the parameters corresponding to the \code{p} confounding covariates; this must be a symmetric positive definite matrix.
+# \item \code{eta}, numeric vector of size \code{J} for the Dirichlet prior on the beta basis weights, 
+# \item \code{alpha}, prior for the mixture weights,
+# \item \code{a} and \code{b}, prior scale and shape parameter for the gamma distribution of each precision parameter, 
+# \item \code{J}, parameter controlling the number of elements of the I-spline basis,
+# \item \code{H}, total number of components in the mixture at \eqn{x_0}.
+# }
+# @param state if \code{family="continuous"}, a list giving the current value of the parameters. This list is used if the current analysis is the continuation of a previous analysis or if we want to start the MCMC algorithm from some particular value of the parameters.
+# @param seed seed for random initialization.
+# @param max.x maximum value allowed for \code{x}.
+# @param z.val optional numeric vector containing a fixed value of interest for each of the confounding covariates to be used for the plots. Default value is \code{mean(z)} for numeric covariates or the mode for factorial covariates.
+# @param verbose logical, if \code{TRUE} a message on the status of the MCMC algorithm is printed to the console. Default is \code{TRUE}.
+#
+#' @importFrom stats dnorm rgamma
+#' @importFrom mvtnorm rmvnorm
+#' @importFrom truncnorm rtruncnorm
+
+.comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior, 
                             state=NULL, seed=5, max.x=ceiling(max(x)),
                             z.val=NULL, verbose = TRUE){
-  
   
   if(is.null(z.val)){
     z.val <- apply(z, 2, function(x) if(length(table(x))>2){mean(x)} 
@@ -30,10 +63,10 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
     set.seed(seed)
     w[1,] <- prior$eta/sum(prior$eta)
     nu0[1,] <- rep(1/H, H)
-    tau0[1,] <- rgamma(H, prior$a, prior$b)
+    tau0[1,] <- stats::rgamma(H, prior$a, prior$b)
     th0[1,] <- rep(prior$mu.theta, H) 
     nu1[1] <- 1
-    tau1[1] <- rgamma(1, prior$a, prior$b)
+    tau1[1] <- stats::rgamma(1, prior$a, prior$b)
     th1[1] <- 0
     ga[1,]<- prior$mu.gamma 
   }
@@ -80,8 +113,8 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
   beta_i <- as.double(phiX %*% w[1, ])
   
   ## f0i and f1i
-  f0i <- sapply(1:n, mixdensity_multi, y=y, z=z, nu=nu0[1,], theta=th0[1,], tau=tau0[1,], ga=ga[1,])
-  f1i <- dnorm(y, rep(th1[1],n)+ crossprod(t(z),ga[1,]) , sqrt(1/tau1[1]))
+  f0i <- sapply(1:n, .mixdensity_multi, y=y, z=z, nu=nu0[1,], theta=th0[1,], tau=tau0[1,], ga=ga[1,])
+  f1i <- stats::dnorm(y, rep(th1[1],n)+ crossprod(t(z),ga[1,]) , sqrt(1/tau1[1]))
   
   # start the MCMC simulation 
   set.seed(seed)
@@ -99,12 +132,12 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
     d <- rbinom(n, 1, prob=(beta_i*f1i)/((1-beta_i)*f0i + beta_i*f1i) )
     
     # 2. Update b_i from the multinomial 
-    b <- sapply(1:n, labelling_b_multi, w[ite-1,], phi=phiX, f0i=f0i, f1i=f1i)
+    b <- sapply(1:n, .labelling_b_multi, w[ite-1,], phi=phiX, f0i=f0i, f1i=f1i)
     
     # 3. Update c_i, marginalizing over b_i and d_i, from the multinomial 
     ind0 <- c(1:n)[d==0] #contiene l'indice delle oss nella componente a dose 0
     ind1 <- c(1:n)[d==1] #contiene l'indice delle oss nella componente a dose inf
-    c <- sapply(ind0, labelling_c_multi, y=y, z=z, nu=nu0[ite-1,], 
+    c <- sapply(ind0, .labelling_c_multi, y=y, z=z, nu=nu0[ite-1,], 
                 theta=th0[ite-1,], tau=tau0[ite-1,], ga=ga[ite-1,])
     
     # 4. Update the mixture weights sampling from dirichlet \per le oss t.c. d=0
@@ -143,7 +176,7 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
     
     post.mu <- tcrossprod( post.sigma, (crossprod(prior$mu.gamma, solve(prior$sigma.gamma)) + Reduce('+', qt2)) )
     
-    ga[ite,] <- rmvnorm(1, mean=post.mu, sigma=post.sigma)
+    ga[ite,] <- mvtnorm::rmvnorm(1, mean=post.mu, sigma=post.sigma)
 
     # 7. Update theta and tau 
     n_0h <- n_h               
@@ -155,36 +188,36 @@ comire.gibbs.continuous.confunders <- function(y, x, z, grid=NULL, mcmc, prior,
     qt3 <- sapply(1:H, function(x) 
       crossprod( y[ind0[indh[[x]]]]-(rep(th0[ite-1,x],length(indh[[x]]))+crossprod(t(z[ind0[indh[[x]]],,drop=F]),ga[ite,])) ))
     hat_b <- prior$b + 0.5*(unlist(qt3))
-    tau0[ite, ] <- rgamma(H, hat_a, hat_b)
+    tau0[ite, ] <- stats::rgamma(H, hat_a, hat_b)
     
     hat_kappa <- (1/prior$k.theta + n_0h*tau0[ite,])^-1
     qt4 <- lapply(indh, function(x) sum( t(y[ind0[x]]) - crossprod(ga[ite,], t(z[ind0[x],,drop=F])) ) )
     qt5 <- lapply(c(1:H), function(x) qt4[[x]]*tau0[ite,x])
     hat_mu <- hat_kappa * (prior$mu.theta/prior$k.theta + unlist(qt5) )
-    th0[ite, ] <- rtruncnorm(H, a=th1[ite-1], b=Inf, hat_mu, sqrt(hat_kappa))
+    th0[ite, ] <- truncnorm::rtruncnorm(H, a=th1[ite-1], b=Inf, hat_mu, sqrt(hat_kappa))
     
     ## in cluster 1: m=1
     hat_a <- prior$a + n_1h/2
     qt3 <- crossprod( ( y[ind1]- (rep(th1[ite-1],length(ind1)) + crossprod(t(z[ind1,,drop=F]),ga[ite,])) ) )
     hat_b <- prior$b + 0.5*(qt3)
-    tau1[ite] <- rgamma(1, hat_a, hat_b)
+    tau1[ite] <- stats::rgamma(1, hat_a, hat_b)
     
     hat_kappa <- (1/prior$k.theta + n_1h*tau1[ite])^-1
     qt4 <- tau1[ite]*sum( t(y[ind1])-crossprod( ga[ite,],t(z[ind1,,drop=F]) ) )
     hat_mu <- hat_kappa * (prior$mu.theta/prior$k.theta + qt4)
-    th1[ite] <- rtruncnorm(1, a=-Inf, b=min(th0[ite, ]), hat_mu, sqrt(hat_kappa))
+    th1[ite] <- truncnorm::rtruncnorm(1, a=-Inf, b=min(th0[ite, ]), hat_mu, sqrt(hat_kappa))
     
     # update the values of the densities in the observed points
-    f0i <- sapply(1:n, mixdensity_multi, y=y, z=z, nu=nu0[ite,], theta=th0[ite,], 
+    f0i <- sapply(1:n, .mixdensity_multi, y=y, z=z, nu=nu0[ite,], theta=th0[ite,], 
                   tau=tau0[ite,], ga=ga[ite,])
-    f1i <- dnorm(y, (rep(th1[ite],n)+crossprod(t(z),ga[ite,])), sqrt(1/tau1[ite]))
+    f1i <- stats::dnorm(y, (rep(th1[ite],n)+crossprod(t(z),ga[ite,])), sqrt(1/tau1[ite]))
     
     # 7. compute some posterior quantities of interest
     beta_x[ite, ] <- phi.grid %*% w[ite, ]
-    f0[ite,] <- sapply(1:length(y.grid), mixdensity_multi, y=y.grid, z=z.val, 
+    f0[ite,] <- sapply(1:length(y.grid), .mixdensity_multi, y=y.grid, z=z.val, 
                        nu=nu0[ite,], theta=th0[ite,], 
                        tau=tau0[ite,], ga=ga[ite,])
-    f1[ite,] <- dnorm(y.grid, (th1[ite]+z.val%*%ga[ite,]) , sqrt(1/tau1[ite]))
+    f1[ite,] <- stats::dnorm(y.grid, (th1[ite]+z.val%*%ga[ite,]) , sqrt(1/tau1[ite]))
     
   }
   

@@ -2,7 +2,9 @@
 #include "sample.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
-// [[Rcpp::export]]
+//' @name comire.internal
+//' @keywords internal
+// [[Rcpp::export(.labelling_bb_C)]]
 arma::vec labelling_bb_C(arma::vec w, arma::mat phi, arma::vec P0, arma::vec P1){
   
   int n = P0.n_elem; 
